@@ -5,7 +5,17 @@ import Foundation
 public enum DataBuilder {
 
     public struct Component {
-        fileprivate let append: (inout Data) -> Void
+
+        // MARK: Stored Properties
+
+        public let append: (_ to: inout Data) -> Void
+
+        // MARK: Initialization
+
+        public init(append: @escaping (_ to: inout Data) -> Void) {
+            self.append = append
+        }
+
     }
 
     public static func buildBlock(_ components: Component...) -> Component {

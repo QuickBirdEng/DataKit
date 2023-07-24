@@ -28,4 +28,10 @@ extension Writable {
         return container.data
     }
 
+    public func write(transform: (inout EnvironmentValues) throws -> Void) throws -> Data {
+        var environment = EnvironmentValues()
+        try transform(&environment)
+        return try write(with: environment)
+    }
+
 }

@@ -30,8 +30,9 @@ extension Checksum where Root: Readable, Format == ReadFormat<Root> {
 extension Checksum where Root: Writable, Format == WriteFormat<Root> {
     public init(_ algorithm: Algorithm) where Algorithm.Value: Writable {
         self.format = .init { container, _ in
-            let value = try algorithm.calculate(for: container.data)
-            try value.write(to: &container)
+            try algorithm
+                .calculate(for: container.data)
+                .write(to: &container)
         }
     }
 }
@@ -45,8 +46,9 @@ extension Checksum where Root: ReadWritable, Format == ReadWriteFormat<Root> {
                 try algorithm.verify(actualValue, for: data)
             }
         } write: { container, _ in
-            let value = try algorithm.calculate(for: container.data)
-            try value.write(to: &container)
+            try algorithm
+                .calculate(for: container.data)
+                .write(to: &container)
         }
     }
 }

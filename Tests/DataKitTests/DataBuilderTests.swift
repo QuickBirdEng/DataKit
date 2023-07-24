@@ -1,5 +1,5 @@
 import XCTest
-@testable import DataBuilder
+@testable import DataKit
 
 func encodeValues(littleEndianValue: UInt16, bigEndianValue: UInt16, littleEndianDouble: Double, bigEndianDouble: Double) -> Data {
     var data = Data()
@@ -134,7 +134,7 @@ final class DataBuilderTests: XCTestCase {
     func testDataBuilder() throws {
         let value = WeatherStationUpdate(id: 1, features: [.hasTemperature, .usesMetricUnits], temperature: 15, humidity: 0.6)
         print(value.id.bigEndian)
-        print(try value.build().map { String(format: "%02hhx", $0) }.joined())
+        print(value.build().map { String(format: "%02hhx", $0) }.joined())
 
         print("hallo".utf8.map { String(format: "%02hhx", $0) }.joined())
     }

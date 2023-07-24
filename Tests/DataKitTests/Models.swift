@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import DataBuilder
+import DataKit
 
 struct WeatherStationFeatures: OptionSet {
     var rawValue: UInt8

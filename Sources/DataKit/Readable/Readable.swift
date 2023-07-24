@@ -26,9 +26,15 @@ extension Readable {
         try self.init(from: context)
     }
 
-    public init(binary data: Data, environment: EnvironmentValues = EnvironmentValues()) throws {
+    public init(_ data: Data, environment: EnvironmentValues = EnvironmentValues()) throws {
         var container = ReadContainer(data: data, environment: environment)
         try self.init(from: &container)
+    }
+
+    public init(_ data: Data, transform: (inout EnvironmentValues) throws -> Void) throws {
+        var environment = EnvironmentValues()
+        try transform(&environment)
+        try self.init(data, environment: environment)
     }
 
 }
