@@ -19,7 +19,7 @@ extension RawRepresentable where Self: Readable, RawValue: Readable {
 
     @ReadBuilder
     public static var readFormat: ReadFormat<Self> {
-        Property(\.rawValue)
+        \.rawValue
     }
 
 }
@@ -28,7 +28,7 @@ extension RawRepresentable where Self: Writable, RawValue: Writable {
 
     @WriteBuilder
     public static var writeFormat: WriteFormat<Self> {
-        Property(\.rawValue)
+        \.rawValue
     }
 
 }
@@ -37,7 +37,7 @@ extension RawRepresentable where Self: ReadWritable, RawValue: ReadWritable {
 
     @FormatBuilder
     public static var format: Format {
-        Property(\.rawValue)
+        \.rawValue
     }
 
 }

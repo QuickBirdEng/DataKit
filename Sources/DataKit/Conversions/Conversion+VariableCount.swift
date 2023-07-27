@@ -7,82 +7,37 @@
 
 import Foundation
 
-extension UnidirectionalConversion where Source: Sequence, Target == VariableLengthArray<Source.Element> {
+extension UnidirectionalConversion where Target: Sequence {
 
-    public static var variableCount: Self {
-        .init {
-            .init(Array($0))
+    public var dynamicCount: Appended<DynamicCountArray<Target.Element>> {
+        appending { .init($0) }
+    }
+
+}
+
+extension UnidirectionalConversion {
+
+    public func dynamicCount<NewTarget: RangeReplaceableCollection>(
+        _ target: NewTarget.Type = NewTarget.self
+    ) -> Appended<NewTarget> where Target == DynamicCountArray<NewTarget.Element> {
+        appending { NewTarget($0.values) }
+    }
+
+}
+
+extension BidirectionalConversion where Target: RangeReplaceableCollection {
+
+    public var dynamicCount: Appended<DynamicCountArray<Target.Element>> {
+        appending {
+            $0.dynamicCount
+        } backward: {
+            $0.dynamicCount()
         }
     }
 
 }
 
-extension UnidirectionalConversion where Source: Sequence {
-
-    public static func variableCount<Element>(
-        as elementConversion: UnidirectionalConversion<Source.Element, Element>
-    ) -> Self where Target == VariableLengthArray<Element> {
-        .init {
-            try VariableLengthArray(
-                $0.map { try elementConversion.convert($0) }
-            )
-        }
-    }
-
-}
-
-extension UnidirectionalConversion where Target: RangeReplaceableCollection, Source == VariableLengthArray<Target.Element> {
-
-    public static var variableCount: Self {
-        .init {
-            .init($0.values)
-        }
-    }
-
-}
-
-extension UnidirectionalConversion where Target: RangeReplaceableCollection {
-
-    public static func variableCount<Element>(
-        as elementConversion: UnidirectionalConversion<Element, Target.Element>
-    ) -> Self where Source == VariableLengthArray<Element> {
-        .init {
-            try .init(
-                $0.values.map {
-                    try elementConversion.convert($0)
-                }
-            )
-        }
-    }
-
-}
-
-extension BidirectionalConversion where Source: RangeReplaceableCollection, Target == VariableLengthArray<Source.Element> {
-
-    public static var variableCount: Self {
-        .init(
-            forward: .variableCount,
-            backward: .variableCount
-        )
-    }
-
-}
-
-extension BidirectionalConversion where Source: RangeReplaceableCollection {
-
-    public static func variableCount<Element>(
-        as elementConversion: BidirectionalConversion<Source.Element, Element>
-    ) -> Self where Target == VariableLengthArray<Element> {
-
-        .init(
-            forward: .variableCount(as: elementConversion.forwardConversion),
-            backward: .variableCount(as: elementConversion.backwardConversion)
-        )
-    }
-
-}
-
-public struct VariableLengthArray<Element> {
+public struct DynamicCountArray<Element> {
 
     // MARK: Stored Properties
 
@@ -90,13 +45,13 @@ public struct VariableLengthArray<Element> {
 
     // MARK: Initialization
 
-    public init(_ values: [Element]) {
-        self.values = values
+    public init<S: Sequence<Element>>(_ values: S) {
+        self.values = Array(values)
     }
 
 }
 
-extension VariableLengthArray: Readable where Element: Readable {
+extension DynamicCountArray: Readable where Element: Readable {
 
     public init(from context: ReadContext<Self>) throws {
         self.values = try context.read(for: \.values)
@@ -110,6 +65,7 @@ extension VariableLengthArray: Readable where Element: Readable {
                 while !container.data[container.index...].starts(with: suffix) {
                     try values.append(Element(from: &container))
                 }
+                _ = try container.consume(suffix.count)
             } else {
                 while !container.data[container.index...].isEmpty {
                     try values.append(Element(from: &container))
@@ -121,7 +77,7 @@ extension VariableLengthArray: Readable where Element: Readable {
 
 }
 
-extension VariableLengthArray: Writable where Element: Writable {
+extension DynamicCountArray: Writable where Element: Writable {
 
     public static var writeFormat: WriteFormat<Self> {
         WriteFormat { container, root in
@@ -137,31 +93,10 @@ extension VariableLengthArray: Writable where Element: Writable {
 
 }
 
-extension VariableLengthArray: ReadWritable where Element: ReadWritable {
+extension DynamicCountArray: ReadWritable where Element: ReadWritable {
 
     public static var format: Format {
-        Format { container, context in
-            var values = [Element]()
-
-            if let suffix = container.environment.suffix {
-                while !container.data[container.index...].starts(with: suffix) {
-                    try values.append(Element(from: &container))
-                }
-            } else {
-                while container.index != container.data.endIndex {
-                    try values.append(Element(from: &container))
-                }
-            }
-            try context.write(values, for: \.values)
-        } write: { container, root in
-            for value in root.values {
-                try value.write(to: &container)
-            }
-
-            if let suffix = container.environment.suffix {
-                container.append(suffix)
-            }
-        }
+        Format(read: readFormat, write: writeFormat)
     }
 
 }

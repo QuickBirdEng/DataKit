@@ -7,49 +7,35 @@
 
 import Foundation
 
-public protocol ReadWritableProperty<Root>: ReadableProperty, WritableProperty where Root: ReadWritable {}
-
-public struct ReadWriteFormat<Root: ReadWritable>: ReadWritableProperty {
+public struct ReadWriteFormat<Root: ReadWritable>: FormatType, ReadableProperty, WritableProperty {
 
     // MARK: Stored Properties
 
-    private let _read: (inout ReadContainer, inout ReadContext<Root>) throws -> Void
-    private let _write: (inout WriteContainer, Root) throws -> Void
+    private let readFormat: ReadFormat<Root>
+    private let writeFormat: WriteFormat<Root>
 
     // MARK: Initialization
 
-    public init(
-        read: @escaping (inout ReadContainer, inout ReadContext<Root>) throws -> Void,
-        write: @escaping (inout WriteContainer, Root) throws -> Void
-    ) {
-        self._read = read
-        self._write = write
+    public init(read: ReadFormat<Root>, write: WriteFormat<Root>) {
+        self.readFormat = read
+        self.writeFormat = write
+    }
+
+    public init(_ multiple: [ReadWriteFormat<Root>]) {
+        self.init(
+            read: .init(multiple.map(\.readFormat)),
+            write: .init(multiple.map(\.writeFormat))
+        )
     }
 
     // MARK: Methods
-    
-    public func write(to container: inout WriteContainer, using root: Root) throws {
-        try _write(&container, root)
-    }
 
     public func read(from container: inout ReadContainer, context: inout ReadContext<Root>) throws {
-        try _read(&container, &context)
+        try readFormat.read(from: &container, context: &context)
     }
 
-}
-
-extension ReadWriteFormat: FormatType {
-
-    public init(_ multiple: [ReadWriteFormat<Root>]) {
-        self.init { container, context in
-            for format in multiple {
-                try format.read(from: &container, context: &context)
-            }
-        } write: { container, root in
-            for format in multiple {
-                try format.write(to: &container, using: root)
-            }
-        }
+    public func write(to container: inout WriteContainer, using root: Root) throws {
+        try writeFormat.write(to: &container, using: root)
     }
 
 }

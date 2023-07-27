@@ -31,45 +31,43 @@ extension FormatProperty {
 
 }
 
-public struct EnvironmentProperty<Content: FormatProperty> {
+public struct EnvironmentProperty<Format: FormatProperty>: FormatProperty {
+
+    // MARK: Nested Types
+
+    public typealias Root = Format.Root
 
     // MARK: Stored Properties
 
-    private let content: Content
+    private let format: Format
     private let transform: (inout EnvironmentValues) throws -> Void
 
     // MARK: Initialization
 
     public init(
-        _ content: Content,
+        _ format: Format,
         transform: @escaping (inout EnvironmentValues) throws -> Void
     ) {
-        self.content = content
+        self.format = format
         self.transform = transform
     }
 
 }
 
-extension EnvironmentProperty: FormatProperty where Content: FormatProperty {
-    public typealias Root = Content.Root
-}
-
-extension EnvironmentProperty: ReadableProperty where Content: ReadableProperty {
+extension EnvironmentProperty: ReadableProperty where Format: ReadableProperty {
     public func read(from container: inout ReadContainer, context: inout ReadContext<Root>) throws {
         let previousEnvironment = container.environment
         try transform(&container.environment)
-        try content.read(from: &container, context: &context)
+        try format.read(from: &container, context: &context)
         container.environment = previousEnvironment
     }
 }
 
-extension EnvironmentProperty: WritableProperty where Content: WritableProperty {
+extension EnvironmentProperty: WritableProperty where Format: WritableProperty {
     public func write(to container: inout WriteContainer, using root: Root) throws {
         let previousEnvironment = container.environment
         try transform(&container.environment)
-        try content.write(to: &container, using: root)
+        try format.write(to: &container, using: root)
         container.environment = previousEnvironment
     }
 }
-
-extension EnvironmentProperty: ReadWritableProperty where Content: ReadWritableProperty {}

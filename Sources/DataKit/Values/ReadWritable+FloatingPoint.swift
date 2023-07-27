@@ -27,7 +27,7 @@ extension FixedWidthFloatingPoint where Self: ReadWritable, BitPattern: ReadWrit
 
     @FormatBuilder
     public static var format: Format {
-        Property(\.bitPattern)
+        \.bitPattern
     }
 
 }

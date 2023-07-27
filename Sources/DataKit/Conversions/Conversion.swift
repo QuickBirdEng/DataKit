@@ -9,30 +9,59 @@ import Foundation
 
 public struct UnidirectionalConversion<Source, Target> {
 
+    // MARK: Nested Types
+
+    public typealias Make = (UnidirectionalConversion<Source, Source>) -> UnidirectionalConversion<Source, Target>
+    public typealias Appended<NewTarget> = UnidirectionalConversion<Source, NewTarget>
+
+    // MARK: Static Functions
+
+    public static func make(_ make: Make) -> Self {
+        make(UnidirectionalConversion<Source, Source> { $0 })
+    }
+
     // MARK: Stored Properties
 
-    fileprivate let _convert: (Source) throws -> Target
+    public let convert: (Source) throws -> Target
 
     // MARK: Initialization
 
-    public init(_ convert: @escaping (Source) throws -> Target) {
-        self._convert = convert
+    internal init(_ convert: @escaping (Source) throws -> Target) {
+        self.convert = convert
     }
 
     // MARK: Methods
 
-    public func convert(_ source: Source) throws -> Target {
-        try _convert(source)
+    public func appending<NewTarget>(
+        _ transform: @escaping (Target) throws -> NewTarget
+    ) -> Appended<NewTarget> {
+        .init { try transform(convert($0)) }
+    }
+
+    public func appending<NewTarget>(
+        _ conversion: UnidirectionalConversion<Target, NewTarget>
+    ) -> Appended<NewTarget> {
+        appending(conversion.convert)
     }
 
 }
 
 public struct BidirectionalConversion<Source, Target> {
 
+    // MARK: Nested Types
+
+    public typealias Make = (BidirectionalConversion<Source, Source>) -> BidirectionalConversion<Source, Target>
+    public typealias Appended<NewTarget> = BidirectionalConversion<Source, NewTarget>
+
+    // MARK: Static Properties
+
+    public static func make(_ make: Make) -> Self {
+        make(BidirectionalConversion<Source, Source> { $0 } backward: { $0 })
+    }
     // MARK: Stored Properties
 
-    private let _forward: (Source) throws -> Target
-    private let _backward: (Target) throws -> Source
+    fileprivate let _forward: (Source) throws -> Target
+    fileprivate let _backward: (Target) throws -> Source
 
     // MARK: Computed Properties
 
@@ -46,14 +75,7 @@ public struct BidirectionalConversion<Source, Target> {
 
     // MARK: Initialization
 
-    public init(
-        forward: UnidirectionalConversion<Source, Target>,
-        backward: UnidirectionalConversion<Target, Source>
-    ) {
-        self.init(forward: forward._convert, backward: backward._convert)
-    }
-
-    public init(
+    private init(
         forward: @escaping (Source) throws -> Target,
         backward: @escaping (Target) throws -> Source
     ) {
@@ -63,7 +85,7 @@ public struct BidirectionalConversion<Source, Target> {
 
     // MARK: Methods
 
-    public func inverted() -> BidirectionalConversion<Target, Source> {
+    public func reversed() -> BidirectionalConversion<Target, Source> {
         .init(forward: _backward, backward: _forward)
     }
 
@@ -73,6 +95,30 @@ public struct BidirectionalConversion<Source, Target> {
 
     public func convert(_ target: Target) throws -> Source {
         try _backward(target)
+    }
+
+    public func appending<NewTarget>(
+        forward: @escaping (Target) throws -> NewTarget,
+        backward: @escaping (NewTarget) throws -> Target
+    ) -> Appended<NewTarget> {
+        .init {
+            try forward(_forward($0))
+        } backward: {
+            try _backward(backward($0))
+        }
+    }
+
+    public func appending<NewTarget>(
+        forward: UnidirectionalConversion<Target, NewTarget>.Make,
+        backward: UnidirectionalConversion<NewTarget, Target>.Make
+    ) -> Appended<NewTarget> {
+        let forwardConversion = UnidirectionalConversion<Target, NewTarget>.make(forward)
+        let backwardConversion = UnidirectionalConversion<NewTarget, Target>.make(backward)
+
+        return appending(
+            forward: forwardConversion.convert,
+            backward: backwardConversion.convert
+        )
     }
 
 }

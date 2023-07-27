@@ -7,62 +7,114 @@
 
 import Foundation
 
-extension UnidirectionalConversion {
+extension UnidirectionalConversion where Target: BinaryFloatingPoint {
 
-    public static func exactly(from source: Source.Type = Source.self, to target: Target.Type = Target.self) -> Self where Source: BinaryFloatingPoint, Target: BinaryFloatingPoint {
-        .init { source in
-            guard let target = Target(exactly: source) else {
-                throw ConversionError(source: source, targetType: Target.self)
+    public func exactly<NewTarget: BinaryFloatingPoint>(
+        _ target: NewTarget.Type = NewTarget.self,
+        from source: Target.Type = Target.self
+    ) -> Appended<NewTarget> {
+        appending { value in
+            guard let result = NewTarget(exactly: value) else {
+                throw ConversionError(source: value, targetType: NewTarget.self)
             }
-            return target
+            return result
+
         }
     }
 
-    public static func exactly(from source: Source.Type = Source.self, to target: Target.Type = Target.self) -> Self where Source: BinaryFloatingPoint, Target: BinaryInteger {
-        .init { source in
-            guard let target = Target(exactly: source) else {
-                throw ConversionError(source: source, targetType: Target.self)
+    public func exactly<NewTarget: BinaryInteger>(
+        _ target: NewTarget.Type = NewTarget.self,
+        from source: Target.Type = Target.self
+    ) -> Appended<NewTarget> {
+        appending { value in
+            guard let result = NewTarget(exactly: value) else {
+                throw ConversionError(source: value, targetType: NewTarget.self)
             }
-            return target
-        }
-    }
+            return result
 
-    public static func exactly(from source: Source.Type = Source.self, to target: Target.Type = Target.self) -> Self where Source: BinaryInteger, Target: BinaryFloatingPoint {
-        .init { source in
-            guard let target = Target(exactly: source) else {
-                throw ConversionError(source: source, targetType: Target.self)
-            }
-            return target
-        }
-    }
-
-    public static func exactly(from source: Source.Type = Source.self, to target: Target.Type = Target.self) -> Self where Source: BinaryInteger, Target: BinaryInteger {
-        .init { source in
-            guard let target = Target(exactly: source) else {
-                throw ConversionError(source: source, targetType: Target.self)
-            }
-            return target
         }
     }
 
 }
 
-extension BidirectionalConversion {
+extension UnidirectionalConversion where Target: BinaryInteger {
 
-    public static func exactly(_ target: Target.Type, from source: Source.Type = Source.self) -> Self where Source: BinaryFloatingPoint, Target: BinaryFloatingPoint {
-        .init(forward: .exactly(), backward: .exactly())
+    public func exactly<NewTarget: BinaryFloatingPoint>(
+        _ target: NewTarget.Type = NewTarget.self,
+        from source: Target.Type = Target.self
+    ) -> Appended<NewTarget> {
+        appending { value in
+            guard let result = NewTarget(exactly: value) else {
+                throw ConversionError(source: value, targetType: NewTarget.self)
+            }
+            return result
+
+        }
     }
 
-    public static func exactly(_ target: Target.Type, from source: Source.Type = Source.self) -> Self where Source: BinaryFloatingPoint, Target: BinaryInteger {
-        .init(forward: .exactly(), backward: .exactly())
+    public func exactly<NewTarget: BinaryInteger>(
+        _ target: NewTarget.Type = NewTarget.self,
+        from source: Target.Type = Target.self
+    ) -> Appended<NewTarget> {
+        appending { value in
+            guard let result = NewTarget(exactly: value) else {
+                throw ConversionError(source: value, targetType: NewTarget.self)
+            }
+            return result
+
+        }
     }
 
-    public static func exactly(_ target: Target.Type, from source: Source.Type = Source.self) -> Self where Source: BinaryInteger, Target: BinaryFloatingPoint {
-        .init(forward: .exactly(), backward: .exactly())
+}
+
+extension BidirectionalConversion where Target: BinaryFloatingPoint {
+
+    public func exactly<NewTarget: BinaryFloatingPoint>(
+        _ target: NewTarget.Type = NewTarget.self,
+        from source: Target.Type = Target.self
+    ) -> Appended<NewTarget> {
+        appending {
+            $0.exactly()
+        } backward: {
+            $0.exactly()
+        }
     }
 
-    public static func exactly(_ target: Target.Type, from source: Source.Type = Source.self) -> Self where Source: BinaryInteger, Target: BinaryInteger {
-        .init(forward: .exactly(), backward: .exactly())
+    public func exactly<NewTarget: BinaryInteger>(
+        _ target: NewTarget.Type = NewTarget.self,
+        from source: Target.Type = Target.self
+    ) -> Appended<NewTarget> {
+        appending {
+            $0.exactly()
+        } backward: {
+            $0.exactly()
+        }
+    }
+
+}
+
+extension BidirectionalConversion where Target: BinaryInteger {
+
+    public func exactly<NewTarget: BinaryFloatingPoint>(
+        _ target: NewTarget.Type = NewTarget.self,
+        from source: Target.Type = Target.self
+    ) -> Appended<NewTarget> {
+        appending {
+            $0.exactly()
+        } backward: {
+            $0.exactly()
+        }
+    }
+
+    public func exactly<NewTarget: BinaryInteger>(
+        _ target: NewTarget.Type = NewTarget.self,
+        from source: Target.Type = Target.self
+    ) -> Appended<NewTarget> {
+        appending {
+            $0.exactly()
+        } backward: {
+            $0.exactly()
+        }
     }
 
 }

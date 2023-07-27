@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct OnRead<Root: Readable>: ReadableProperty {
+public struct OnRead<Root: ReadWritable>: ReadableProperty, WritableProperty {
 
     // MARK: Stored Properties
 
@@ -25,8 +25,6 @@ public struct OnRead<Root: Readable>: ReadableProperty {
         try format.read(from: &container, context: &context)
     }
 
-}
-
-extension OnRead: WritableProperty, ReadWritableProperty where Root: ReadWritable {
     public func write(to container: inout WriteContainer, using root: Root) throws {}
+
 }
