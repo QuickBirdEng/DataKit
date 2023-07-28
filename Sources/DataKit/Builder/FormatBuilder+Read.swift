@@ -23,7 +23,7 @@ extension FormatBuilder where Root: Readable, Format == ReadFormat<Root> {
     public static func buildExpression<C: Checksum>(_ expression: C) -> Format where C.Value: Readable {
         buildExpression(
             ReadFormat { container, _ in
-                let verificationData = container.data[..<container.index]
+                let verificationData = container.consumedData
                 try expression.verify(C.Value(from: &container), for: verificationData)
             }
             .endianness(.big)

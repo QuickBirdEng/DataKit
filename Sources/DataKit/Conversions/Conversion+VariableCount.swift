@@ -62,12 +62,14 @@ extension DynamicCountArray: Readable where Element: Readable {
             var values = [Element]()
 
             if let suffix = container.environment.suffix {
-                while !container.data[container.index...].starts(with: suffix) {
+                while !(suffix.isRequired ? false : container.remainingData.isEmpty) && !container.remainingData.starts(with: suffix.data) {
                     try values.append(Element(from: &container))
                 }
-                _ = try container.consume(suffix.count)
+                if !container.remainingData.isEmpty {
+                    _ = try container.consume(suffix.data.count)
+                }
             } else {
-                while !container.data[container.index...].isEmpty {
+                while !container.remainingData.isEmpty {
                     try values.append(Element(from: &container))
                 }
             }
@@ -86,7 +88,7 @@ extension DynamicCountArray: Writable where Element: Writable {
             }
 
             if let suffix = container.environment.suffix {
-                container.append(suffix)
+                container.append(suffix.data)
             }
         }
     }

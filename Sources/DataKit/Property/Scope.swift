@@ -50,7 +50,7 @@ extension Scope: ReadableProperty where Format: ReadableProperty {
         guard let endIndex = container.data.index(container.data.endIndex, offsetBy: -endInset, limitedBy: container.index) else {
             throw ReadContainer.LengthExceededError()
         }
-        var nestedContainer = ReadContainer(data: container.data[container.index..<endIndex], environment: container.environment)
+        var nestedContainer = ReadContainer(data: container.remainingData.prefix(upTo: endIndex), environment: container.environment)
         try format.read(from: &nestedContainer, context: &context)
         let distance = nestedContainer.data.distance(from: nestedContainer.data.startIndex, to: nestedContainer.index)
         container.index = container.data.index(container.index, offsetBy: distance)
