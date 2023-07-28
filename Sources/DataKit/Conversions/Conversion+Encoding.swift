@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension UnidirectionalConversion where Target: StringProtocol {
+extension Conversion where Target: StringProtocol {
 
     public func encoded(_ encoding: String.Encoding, allowLossyConversion: Bool = false) -> Appended<Data> {
         appending { string in
@@ -20,7 +20,7 @@ extension UnidirectionalConversion where Target: StringProtocol {
 
 }
 
-extension UnidirectionalConversion where Target: Sequence<UInt8> {
+extension Conversion where Target: Sequence<UInt8> {
 
     public func encoded(_ encoding: String.Encoding) -> Appended<String> {
         appending { bytes in
@@ -33,12 +33,12 @@ extension UnidirectionalConversion where Target: Sequence<UInt8> {
 
 }
 
-extension BidirectionalConversion where Target == String {
+extension ReversibleConversion where Target == String {
 
     public func encoded(_ encoding: String.Encoding, allowLossyConversion: Bool = false) -> Appended<Data> {
         appending {
             $0.encoded(encoding, allowLossyConversion: allowLossyConversion)
-        } backward: {
+        } revert: {
             $0.encoded(encoding)
         }
     }

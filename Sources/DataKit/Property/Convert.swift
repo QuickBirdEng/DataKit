@@ -21,9 +21,18 @@ public struct Convert<Format: FormatType>: FormatProperty {
 
     public init<Root, Value, ConvertedValue: Readable>(
         _ keyPath: KeyPath<Root, Value>,
-        conversion makeConversion: UnidirectionalConversion<ConvertedValue, Value>.Make
+        conversion makeConversion: Conversion<ConvertedValue, Value>.Make
     ) where Root: Readable, Format == ReadFormat<Root> {
-        let convert = UnidirectionalConversion.make(makeConversion).convert
+        self.init(
+            keyPath,
+            convert: Conversion.make(makeConversion).convert
+        )
+    }
+
+    public init<Root, Value, ConvertedValue: Readable>(
+        _ keyPath: KeyPath<Root, Value>,
+        convert: @escaping (ConvertedValue) throws -> Value
+    ) where Root: Readable, Format == ReadFormat<Root> {
         self.format = ReadFormat { container, context in
             let value = try convert(ConvertedValue(from: &container))
             try context.write(value, for: keyPath)
@@ -32,9 +41,18 @@ public struct Convert<Format: FormatType>: FormatProperty {
 
     public init<Root, Value, ConvertedValue: Writable>(
         _ keyPath: KeyPath<Root, Value>,
-        conversion makeConversion: UnidirectionalConversion<Value, ConvertedValue>.Make
+        conversion makeConversion: Conversion<Value, ConvertedValue>.Make
     ) where Root: Writable, Format == WriteFormat<Root> {
-        let convert = UnidirectionalConversion.make(makeConversion).convert
+        self.init(
+            keyPath,
+            convert: Conversion.make(makeConversion).convert
+        )
+    }
+
+    public init<Root, Value, ConvertedValue: Writable>(
+        _ keyPath: KeyPath<Root, Value>,
+        convert: @escaping (Value) throws -> ConvertedValue
+    ) where Root: Writable, Format == WriteFormat<Root> {
         self.format = WriteFormat { container, root in
             try convert(root[keyPath: keyPath]).write(to: &container)
         }
@@ -42,16 +60,24 @@ public struct Convert<Format: FormatType>: FormatProperty {
 
     public init<Root, Value, ConvertedValue: ReadWritable>(
         _ keyPath: KeyPath<Root, Value>,
-        conversion makeConversion: BidirectionalConversion<Value, ConvertedValue>.Make
+        conversion makeConversion: ReversibleConversion<Value, ConvertedValue>.Make
     ) where Root: ReadWritable, Format == ReadWriteFormat<Root> {
-        let conversion = BidirectionalConversion.make(makeConversion)
+        let conversion = ReversibleConversion.make(makeConversion)
+        self.init(keyPath, reading: conversion.convert, writing: conversion.convert)
+    }
+
+    public init<Root, Value, ConvertedValue: ReadWritable>(
+        _ keyPath: KeyPath<Root, Value>,
+        reading: @escaping (ConvertedValue) throws -> Value,
+        writing: @escaping (Value) throws -> ConvertedValue
+    ) where Root: ReadWritable, Format == ReadWriteFormat<Root> {
         self.format = ReadWriteFormat(
             read: .init { container, context in
-                let value = try conversion.convert(ConvertedValue(from: &container))
+                let value = try reading(ConvertedValue(from: &container))
                 try context.write(value, for: keyPath)
             },
             write: .init { container, root in
-                try conversion.convert(root[keyPath: keyPath]).write(to: &container)
+                try writing(root[keyPath: keyPath]).write(to: &container)
             }
         )
     }

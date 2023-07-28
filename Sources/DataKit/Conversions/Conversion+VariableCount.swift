@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension UnidirectionalConversion where Target: Sequence {
+extension Conversion where Target: Sequence {
 
     public var dynamicCount: Appended<DynamicCountArray<Target.Element>> {
         appending { .init($0) }
@@ -15,7 +15,7 @@ extension UnidirectionalConversion where Target: Sequence {
 
 }
 
-extension UnidirectionalConversion {
+extension Conversion {
 
     public func dynamicCount<NewTarget: RangeReplaceableCollection>(
         _ target: NewTarget.Type = NewTarget.self
@@ -25,12 +25,12 @@ extension UnidirectionalConversion {
 
 }
 
-extension BidirectionalConversion where Target: RangeReplaceableCollection {
+extension ReversibleConversion where Target: RangeReplaceableCollection {
 
     public var dynamicCount: Appended<DynamicCountArray<Target.Element>> {
         appending {
             $0.dynamicCount
-        } backward: {
+        } revert: {
             $0.dynamicCount()
         }
     }

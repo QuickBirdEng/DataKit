@@ -18,7 +18,7 @@ final class DataBuilderTests: XCTestCase {
     func testExample2() throws {
         let original = MyItem(id: 10, nestedItems: [.init(id: 2, value: -15.3)])
         let data = try original.write()
-        let read = try MyItem(data) { $0.endianness = .big }
+        let read = try MyItem(data)
         print(data.map { String(format: "%02hhx", $0) }.joined())
         print(original)
         print(read)

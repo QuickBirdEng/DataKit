@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension UnidirectionalConversion where Target: BinaryInteger {
+extension Conversion where Target: BinaryInteger {
 
     public func clamped<NewTarget: BinaryInteger>(
         to target: NewTarget.Type = NewTarget.self,
@@ -18,7 +18,7 @@ extension UnidirectionalConversion where Target: BinaryInteger {
 
 }
 
-extension BidirectionalConversion where Target: BinaryInteger {
+extension ReversibleConversion where Target: BinaryInteger {
 
     public func clamped<NewTarget: BinaryInteger>(
         to target: NewTarget.Type = NewTarget.self,
@@ -26,7 +26,7 @@ extension BidirectionalConversion where Target: BinaryInteger {
     ) -> Appended<NewTarget> {
         appending {
             $0.clamped()
-        } backward: {
+        } revert: {
             $0.clamped()
         }
     }

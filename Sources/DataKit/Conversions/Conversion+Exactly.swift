@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension UnidirectionalConversion where Target: BinaryFloatingPoint {
+extension Conversion where Target: BinaryFloatingPoint {
 
     public func exactly<NewTarget: BinaryFloatingPoint>(
         _ target: NewTarget.Type = NewTarget.self,
@@ -37,7 +37,7 @@ extension UnidirectionalConversion where Target: BinaryFloatingPoint {
 
 }
 
-extension UnidirectionalConversion where Target: BinaryInteger {
+extension Conversion where Target: BinaryInteger {
 
     public func exactly<NewTarget: BinaryFloatingPoint>(
         _ target: NewTarget.Type = NewTarget.self,
@@ -67,7 +67,7 @@ extension UnidirectionalConversion where Target: BinaryInteger {
 
 }
 
-extension BidirectionalConversion where Target: BinaryFloatingPoint {
+extension ReversibleConversion where Target: BinaryFloatingPoint {
 
     public func exactly<NewTarget: BinaryFloatingPoint>(
         _ target: NewTarget.Type = NewTarget.self,
@@ -75,7 +75,7 @@ extension BidirectionalConversion where Target: BinaryFloatingPoint {
     ) -> Appended<NewTarget> {
         appending {
             $0.exactly()
-        } backward: {
+        } revert: {
             $0.exactly()
         }
     }
@@ -86,14 +86,14 @@ extension BidirectionalConversion where Target: BinaryFloatingPoint {
     ) -> Appended<NewTarget> {
         appending {
             $0.exactly()
-        } backward: {
+        } revert: {
             $0.exactly()
         }
     }
 
 }
 
-extension BidirectionalConversion where Target: BinaryInteger {
+extension ReversibleConversion where Target: BinaryInteger {
 
     public func exactly<NewTarget: BinaryFloatingPoint>(
         _ target: NewTarget.Type = NewTarget.self,
@@ -101,7 +101,7 @@ extension BidirectionalConversion where Target: BinaryInteger {
     ) -> Appended<NewTarget> {
         appending {
             $0.exactly()
-        } backward: {
+        } revert: {
             $0.exactly()
         }
     }
@@ -112,7 +112,7 @@ extension BidirectionalConversion where Target: BinaryInteger {
     ) -> Appended<NewTarget> {
         appending {
             $0.exactly()
-        } backward: {
+        } revert: {
             $0.exactly()
         }
     }

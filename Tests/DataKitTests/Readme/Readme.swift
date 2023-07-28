@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Paul Kraft on 25.07.23.
 //
@@ -53,28 +53,22 @@ extension WeatherStationUpdate: ReadWritable {
 
             \.features
 
-            /*
             Using(\.features) { features in
                 if features.contains(.hasTemperature) {
                     let unit: UnitTemperature =
-                        features.contains(.usesMetricUnits) ? .celsius : .fahrenheit
-                    Property(\.temperature)
-                        .converted {
-                            Measurement(value: Double($0), unit: unit)
-                        } writing: {
-                            Float($0.converted(to: unit).value)
-                        }
+                    features.contains(.usesMetricUnits) ? .celsius : .fahrenheit
+                    Convert(\.temperature) {
+                        $0.converted(to: unit).cast(Float.self)
+                    }
                 }
                 if features.contains(.hasHumidity) {
-                    Property(\.humidity)
-                        .converted {
-                            Double($0) / 100
-                        } writing: {
-                            UInt8($0 * 100)
-                        }
+                    Convert(\.humidity) {
+                        Double($0) / 100
+                    } writing: {
+                        UInt8($0 * 100)
+                    }
                 }
             }
-             */
 
             CRC32.default
         }
@@ -82,3 +76,4 @@ extension WeatherStationUpdate: ReadWritable {
     }
 
 }
+

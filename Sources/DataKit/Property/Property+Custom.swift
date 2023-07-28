@@ -9,38 +9,31 @@ import Foundation
 
 extension Property where Root: Readable {
 
-    public func custom(
-        read: @escaping (inout ReadContainer) -> Value
-    ) -> ReadFormat<Root> {
-        .init { container, context in
-            try context.write(read(&container), for: keyPath)
-        }
+    public func read(
+        _ read: @escaping (inout ReadContainer) -> Value
+    ) -> Custom<ReadFormat<Root>> {
+        Custom(keyPath, read: read)
     }
 
 }
 
 extension Property where Root: Writable {
 
-    public func custom(
-        write: @escaping (inout WriteContainer, Value) throws -> Void
-    ) -> WriteFormat<Root> {
-        .init { container, root in
-            try write(&container, root[keyPath: keyPath])
-        }
+    public func write(
+        _ write: @escaping (inout WriteContainer, Value) throws -> Void
+    ) -> Custom<WriteFormat<Root>> {
+        Custom(keyPath, write: write)
     }
 
 }
 
 extension Property where Root: ReadWritable {
 
-    public func custom(
-        read: @escaping (inout ReadContainer) -> Value,
+    public func read(
+        _ read: @escaping (inout ReadContainer) -> Value,
         write: @escaping (inout WriteContainer, Value) throws -> Void
-    ) -> ReadWriteFormat<Root> {
-        ReadWriteFormat(
-            read: custom(read: read),
-            write: custom(write: write)
-        )
+    ) -> Custom<ReadWriteFormat<Root>> {
+        Custom(keyPath, read: read, write: write)
     }
 
 }

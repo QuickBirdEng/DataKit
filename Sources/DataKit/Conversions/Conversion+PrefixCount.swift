@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension UnidirectionalConversion where Target: Sequence {
+extension Conversion where Target: Sequence {
 
     public func prefixCount<Count: FixedWidthInteger>(
         _ type: Count.Type
@@ -17,7 +17,7 @@ extension UnidirectionalConversion where Target: Sequence {
 
 }
 
-extension UnidirectionalConversion {
+extension Conversion {
 
     public func prefixCount<NewTarget: RangeReplaceableCollection, Count: FixedWidthInteger>(
         _ type: Count.Type
@@ -27,14 +27,14 @@ extension UnidirectionalConversion {
 
 }
 
-extension BidirectionalConversion {
+extension ReversibleConversion {
 
     public func prefixCount<Count: FixedWidthInteger>(
         _ type: Count.Type
     ) -> Appended<PrefixCountArray<Count, Target.Element>> where Target: RangeReplaceableCollection {
         appending {
             $0.prefixCount(Count.self)
-        } backward: {
+        } revert: {
             $0.prefixCount(Count.self)
         }
     }

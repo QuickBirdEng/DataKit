@@ -34,6 +34,8 @@ extension MyItem: ReadWritable {
             Convert(\.nestedItems) {
                 $0.prefixCount(UInt8.self)
             }
+
+            CRC32.default
         }
     }
 
@@ -59,18 +61,11 @@ extension MyNestedItem: ReadWritable {
     }
 
     public static var format: Format {
-        Scope<ReadWriteFormat<MyNestedItem>> {
-            /*
-            Convert(\MyNestedItem.id) {
-                $0.exactly(UInt16.self)
-            }
-            .endianness(.big)
-*/
+        Scope {
+            Convert(\.id) { $0.exactly(UInt16.self) }
+                .endianness(.big)
 
             Property(\.value)
-                .endianness(.little)
-
-            Scope { \.value }
                 .endianness(.little)
 
             CRC32.default

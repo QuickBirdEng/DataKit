@@ -5,7 +5,7 @@
 //  Created by Paul Kraft on 25.07.23.
 //
 
-extension UnidirectionalConversion {
+extension Conversion {
 
     public func converted<UnitType: Dimension>(
         to unit: UnitType
@@ -21,14 +21,14 @@ extension UnidirectionalConversion {
 
 }
 
-extension BidirectionalConversion {
+extension ReversibleConversion {
 
     public func converted<UnitType: Dimension>(
         to unit: UnitType
     ) -> Appended<Double> where Target == Measurement<UnitType> {
         appending {
             $0.converted(to: unit)
-        } backward: {
+        } revert: {
             $0.converted(to: unit)
         }
     }
@@ -38,7 +38,7 @@ extension BidirectionalConversion {
     ) -> Appended<Measurement<UnitType>> where Target == Double {
         appending {
             $0.converted(to: unit)
-        } backward: {
+        } revert: {
             $0.converted(to: unit)
         }
     }

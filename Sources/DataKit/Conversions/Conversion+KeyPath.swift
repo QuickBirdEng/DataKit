@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension UnidirectionalConversion {
+extension Conversion {
 
     public func at<NewTarget>(
         _ keyPath: KeyPath<Target, NewTarget>
@@ -17,7 +17,7 @@ extension UnidirectionalConversion {
 
 }
 
-extension BidirectionalConversion {
+extension ReversibleConversion {
 
     public func at<NewTarget>(
         _ forward: KeyPath<Target, NewTarget>,
@@ -25,7 +25,7 @@ extension BidirectionalConversion {
     ) -> Appended<NewTarget> {
         appending {
             $0.at(forward)
-        } backward: {
+        } revert: {
             $0.at(backward)
         }
     }
@@ -37,7 +37,7 @@ extension BidirectionalConversion {
     ) -> Appended<Target> {
         appending {
             forward ? $0.at(keyPath) : $0
-        } backward: {
+        } revert: {
             backward ? $0.at(keyPath) : $0
         }
     }
