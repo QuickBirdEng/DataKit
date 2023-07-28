@@ -21,10 +21,13 @@ extension FormatBuilder where Root: Readable, Format == ReadFormat<Root> {
     }
 
     public static func buildExpression<C: Checksum>(_ expression: C) -> Format where C.Value: Readable {
-        .init { container, _ in
-            let verificationData = container.data[..<container.index]
-            try expression.verify(C.Value(from: &container), for: verificationData)
-        }
+        buildExpression(
+            ReadFormat { container, _ in
+                let verificationData = container.data[..<container.index]
+                try expression.verify(C.Value(from: &container), for: verificationData)
+            }
+            .endianness(.big)
+        )
     }
 
     public static func buildExpression<V: ReadableProperty>(_ expression: V) -> Format where V.Root == Root {

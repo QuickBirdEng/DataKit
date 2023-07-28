@@ -26,14 +26,10 @@ extension MyItem: ReadWritable {
             }
             .endianness(.big)
 
-            Convert(\.id) {
-                $0.exactly(UInt16.self)
-            }
-            .endianness(.big)
+            Convert(\.id) { $0.exactly(UInt16.self) }
+                .endianness(.big)
 
-            Convert(\.nestedItems) {
-                $0.prefixCount(UInt8.self)
-            }
+            Convert(\.nestedItems) { $0.prefixCount(UInt8.self) }
 
             CRC32.default
         }
