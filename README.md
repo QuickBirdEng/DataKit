@@ -1,5 +1,5 @@
 
-![DataKit](https://github.com/QuickBirdEng/DataKit/assets/15239005/43e7a29d-ae9e-4fb2-8f82-3b9f31c6c254)
+![‎DataKit](https://github.com/QuickBirdEng/DataKit/assets/15239005/fdb2ac5b-40e3-4b93-a310-e7d059ac4c18)
 
 DataKit offers a modern, intuitive and declarative interface for reading and writing binary formatted data in Swift. 
 
