@@ -7,15 +7,15 @@
 
 import Foundation
 
-public struct UnidirectionalConversion<Source, Target> {
+public struct Conversion<Source, Target> {
 
     // MARK: Stored Properties
 
-    fileprivate let _convert: (Source) throws -> Target
+    internal let _convert: (Source) throws -> Target
 
     // MARK: Initialization
 
-    public init(_ convert: @escaping (Source) throws -> Target) {
+    internal init(_ convert: @escaping (Source) throws -> Target) {
         self._convert = convert
     }
 
@@ -27,52 +27,30 @@ public struct UnidirectionalConversion<Source, Target> {
 
 }
 
-public struct BidirectionalConversion<Source, Target> {
+extension Conversion {
 
-    // MARK: Stored Properties
+    public typealias Make = (Conversion<Source, Source>) -> Conversion<Source, Target>
 
-    private let _forward: (Source) throws -> Target
-    private let _backward: (Target) throws -> Source
-
-    // MARK: Computed Properties
-
-    public var forwardConversion: UnidirectionalConversion<Source, Target> {
-        .init(_forward)
+    public static func make(_ make: Make) -> Self {
+        make(.init { $0 })
     }
 
-    public var backwardConversion: UnidirectionalConversion<Target, Source> {
-        .init(_backward)
+}
+
+extension Conversion {
+
+    public typealias Appended<NewTarget> = Conversion<Source, NewTarget>
+
+    public func appending<NewTarget>(
+        _ transform: @escaping (Target) throws -> NewTarget
+    ) -> Appended<NewTarget> {
+        .init { try transform(convert($0)) }
     }
 
-    // MARK: Initialization
-
-    public init(
-        forward: UnidirectionalConversion<Source, Target>,
-        backward: UnidirectionalConversion<Target, Source>
-    ) {
-        self.init(forward: forward._convert, backward: backward._convert)
-    }
-
-    public init(
-        forward: @escaping (Source) throws -> Target,
-        backward: @escaping (Target) throws -> Source
-    ) {
-        self._forward = forward
-        self._backward = backward
-    }
-
-    // MARK: Methods
-
-    public func inverted() -> BidirectionalConversion<Target, Source> {
-        .init(forward: _backward, backward: _forward)
-    }
-
-    public func convert(_ source: Source) throws -> Target {
-        try _forward(source)
-    }
-
-    public func convert(_ target: Target) throws -> Source {
-        try _backward(target)
+    public func appending<NewTarget>(
+        _ conversion: Conversion<Target, NewTarget>
+    ) -> Appended<NewTarget> {
+        appending(conversion.convert)
     }
 
 }

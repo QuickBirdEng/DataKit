@@ -21,6 +21,20 @@ extension FormatBuilder where Root: Writable, Format == WriteFormat<Root> {
         }
     }
 
+    public static func buildExpression<Value: Writable>(_ expression: KeyPath<Root, Value>) -> Format {
+        buildExpression(Property(expression))
+    }
+
+    public static func buildExpression<C: Checksum>(_ expression: C) -> Format where C.Value: Writable {
+        buildExpression(
+            WriteFormat { container, _ in
+                try expression.calculate(for: container.data)
+                    .write(to: &container)
+            }
+            .endianness(.big)
+        )
+    }
+
     public static func buildExpression<S: Sequence>(_ expression: S) -> Format where S.Element: Writable {
         .init(expression.map(buildExpression))
     }

@@ -19,6 +19,16 @@ public struct ReadContainer {
     public var index: Data.Index
     public var environment: EnvironmentValues
 
+    // MARK: Computed Properties
+
+    public var consumedData: Data {
+        data.prefix(upTo: index)
+    }
+
+    public var remainingData: Data {
+        data.suffix(from: index)
+    }
+
     // MARK: Initialization
 
     public init(

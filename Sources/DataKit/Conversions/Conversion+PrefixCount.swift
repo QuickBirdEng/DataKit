@@ -7,57 +7,41 @@
 
 import Foundation
 
-extension UnidirectionalConversion {
+extension Conversion where Target: Sequence {
 
-    public static func prefixCount<Count: FixedWidthInteger>(
+    public func prefixCount<Count: FixedWidthInteger>(
         _ type: Count.Type
-    ) -> Self where Source: Sequence, Target == CountPrefixArray<Count, Source.Element> {
-        .init { .init(values: .init($0)) }
-    }
-
-    public static func prefixCount<Count: FixedWidthInteger>(
-        _ type: Count.Type
-    ) -> Self where Target: RangeReplaceableCollection, Source == CountPrefixArray<Count, Target.Element> {
-        .init { .init($0.values) }
-    }
-
-    public static func prefixCount<Count: FixedWidthInteger, Element>(
-        _ type: Count.Type,
-        as elementConversion: UnidirectionalConversion<Source.Element, Element>
-    ) -> Self where Source: Sequence, Target == CountPrefixArray<Count, Element> {
-        .init { try .init(values: .init($0.map { try elementConversion.convert($0) })) }
-    }
-
-    public static func prefixCount<Count: FixedWidthInteger, Element>(
-        _ type: Count.Type,
-        as elementConversion: UnidirectionalConversion<Element, Target.Element>
-    ) -> Self where Target: RangeReplaceableCollection, Source == CountPrefixArray<Count, Element> {
-        .init { try .init($0.values.map { try elementConversion.convert($0) }) }
+    ) -> Appended<PrefixCountArray<Count, Target.Element>> {
+        appending { .init(values: .init($0)) }
     }
 
 }
 
-extension BidirectionalConversion {
+extension Conversion {
 
-    public static func prefixCount<Count: FixedWidthInteger>(
+    public func prefixCount<NewTarget: RangeReplaceableCollection, Count: FixedWidthInteger>(
         _ type: Count.Type
-    ) -> Self where Source: RangeReplaceableCollection, Target == CountPrefixArray<Count, Source.Element> {
-        .init(forward: .prefixCount(Count.self), backward: .prefixCount(Count.self))
-    }
-
-    public static func prefixCount<Count: FixedWidthInteger, Element>(
-        _ type: Count.Type,
-        as elementConversion: BidirectionalConversion<Source.Element, Element>
-    ) -> Self where Source: RangeReplaceableCollection, Target == CountPrefixArray<Count, Element> {
-        .init(
-            forward: .prefixCount(Count.self, as: elementConversion.forwardConversion),
-            backward: .prefixCount(Count.self, as: elementConversion.backwardConversion)
-        )
+    ) -> Appended<NewTarget> where Target == PrefixCountArray<Count, NewTarget.Element> {
+        appending { .init($0.values) }
     }
 
 }
 
-public struct CountPrefixArray<Count: FixedWidthInteger, Element> {
+extension ReversibleConversion {
+
+    public func prefixCount<Count: FixedWidthInteger>(
+        _ type: Count.Type
+    ) -> Appended<PrefixCountArray<Count, Target.Element>> where Target: RangeReplaceableCollection {
+        appending {
+            $0.prefixCount(Count.self)
+        } revert: {
+            $0.prefixCount(Count.self)
+        }
+    }
+
+}
+
+public struct PrefixCountArray<Count: FixedWidthInteger, Element> {
 
     // MARK: Stored Properties
 
@@ -71,7 +55,7 @@ public struct CountPrefixArray<Count: FixedWidthInteger, Element> {
 
 }
 
-extension CountPrefixArray: Readable where Count: Readable, Element: Readable {
+extension PrefixCountArray: Readable where Count: Readable, Element: Readable {
 
     public init(from context: ReadContext<Self>) throws {
         let count = try context.read(for: \.values.count)
@@ -79,41 +63,38 @@ extension CountPrefixArray: Readable where Count: Readable, Element: Readable {
     }
 
     public static var readFormat: ReadFormat<Self> {
-        Property(\.values.count, as: .exactly(from: Count.self))
+        Convert(\.values.count) {
+            $0.exactly(from: Count.self)
+        }
 
         Using(\.values.count) { count in
             for index in 0..<count {
-                Property(\.values[index])
+                \.values[index]
             }
         }
     }
 
 }
 
-extension CountPrefixArray: Writable where Count: Writable, Element: Writable {
+extension PrefixCountArray: Writable where Count: Writable, Element: Writable {
 
     public static var writeFormat: WriteFormat<Self> {
-        Property(\.values.count, as: .exactly(to: Count.self))
+        Property(\.values.count)
+            .conversion { $0.exactly(Count.self) }
 
         Using(\.values.count) { count in
             for index in 0..<count {
-                Property(\.values[index])
+                \.values[index]
             }
         }
     }
 
 }
 
-extension CountPrefixArray: ReadWritable where Count: ReadWritable, Element: ReadWritable {
+extension PrefixCountArray: ReadWritable where Count: ReadWritable, Element: ReadWritable {
 
     public static var format: Format {
-        Property(\.values.count, as: .exactly(Count.self))
-
-        Using(\.values.count) { count in
-            for index in 0..<count {
-                Property(\.values[index])
-            }
-        }
+        Format(read: readFormat, write: writeFormat)
     }
 
 }

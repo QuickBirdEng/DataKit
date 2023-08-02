@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Environment<Value, Root, Format: FormatType>: FormatProperty where Root == Format.Root {
+public struct Environment<Value, Format: FormatType>: FormatProperty {
 
     // MARK: Nested Types
 
@@ -15,39 +15,35 @@ public struct Environment<Value, Root, Format: FormatType>: FormatProperty where
 
     // MARK: Stored Properties
 
-    let keyPath: KeyPath<EnvironmentValues, Value>
-    let format: (Value) throws -> Format
+    private let keyPath: KeyPath<EnvironmentValues, Value>
+    private let format: (Value) throws -> Format
 
-}
+    // MARK: Initialization
 
-extension Environment where Format == ReadFormat<Root> {
-    public init(
+    public init<Root: Readable> (
         _ keyPath: KeyPath<EnvironmentValues, Value>,
-        @FormatBuilder<Format.Root, Format> format: @escaping (Value) throws -> Format
-    ) {
+        @FormatBuilder<Root, Format> format: @escaping (Value) throws -> Format
+    ) where Format == ReadFormat<Root> {
         self.keyPath = keyPath
         self.format = format
     }
-}
 
-extension Environment where Format == WriteFormat<Root> {
-    public init(
+    public init<Root: Writable> (
         _ keyPath: KeyPath<EnvironmentValues, Value>,
-        @FormatBuilder<Format.Root, Format> format: @escaping (Value) throws -> Format
-    ) {
+        @FormatBuilder<Root, Format> format: @escaping (Value) throws -> Format
+    ) where Format == WriteFormat<Root> {
         self.keyPath = keyPath
         self.format = format
     }
-}
 
-extension Environment where Format == ReadWriteFormat<Root> {
-    public init(
+    public init<Root: ReadWritable> (
         _ keyPath: KeyPath<EnvironmentValues, Value>,
-        @FormatBuilder<Format.Root, Format> format: @escaping (Value) throws -> Format
-    ) {
+        @FormatBuilder<Root, Format> format: @escaping (Value) throws -> Format
+    ) where Format == ReadWriteFormat<Root> {
         self.keyPath = keyPath
         self.format = format
     }
+
 }
 
 extension Environment: ReadableProperty where Format: ReadableProperty {
@@ -63,5 +59,3 @@ extension Environment: WritableProperty where Format: WritableProperty {
         try format(value).write(to: &container, using: root)
     }
 }
-
-extension Environment: ReadWritableProperty where Format: ReadWritableProperty {}

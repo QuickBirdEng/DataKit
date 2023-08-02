@@ -9,10 +9,6 @@ let package = Package(
             name: "DataKit",
             targets: ["DataKit"]
         ),
-        .library(
-            name: "DataKit+CRC",
-            targets: ["DataKit+CRC"]
-        ),
     ],
     dependencies: [
         .package(
@@ -23,12 +19,7 @@ let package = Package(
     targets: [
         .target(
             name: "DataKit",
-            dependencies: []
-        ),
-        .target(
-            name: "DataKit+CRC",
             dependencies: [
-                "DataKit",
                 .product(name: "CRC", package: "crc-swift"),
             ]
         ),

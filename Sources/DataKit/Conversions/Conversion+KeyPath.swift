@@ -7,22 +7,39 @@
 
 import Foundation
 
-extension UnidirectionalConversion {
+extension Conversion {
 
-    public static func keyPath(_ keyPath: KeyPath<Source, Target>) -> Self {
-        .init { $0[keyPath: keyPath] }
+    public func at<NewTarget>(
+        _ keyPath: KeyPath<Target, NewTarget>
+    ) -> Appended<NewTarget> {
+        appending { $0[keyPath: keyPath] }
     }
 
 }
 
-extension BidirectionalConversion {
+extension ReversibleConversion {
 
-    public static func keyPaths(_ forward: KeyPath<Source, Target>, _ backward: KeyPath<Target, Source>) -> Self {
-        .init(forward: .keyPath(forward), backward: .keyPath(backward))
+    public func at<NewTarget>(
+        _ forward: KeyPath<Target, NewTarget>,
+        _ backward: KeyPath<NewTarget, Target>
+    ) -> Appended<NewTarget> {
+        appending {
+            $0.at(forward)
+        } revert: {
+            $0.at(backward)
+        }
     }
 
-    public static func keyPath(_ keyPath: KeyPath<Source, Target>) -> Self where Source == Target {
-        .init(forward: .keyPath(keyPath), backward: .keyPath(keyPath))
+    public func at(
+        symmetric keyPath: KeyPath<Target, Target>,
+        forward: Bool = true,
+        backward: Bool = true
+    ) -> Appended<Target> {
+        appending {
+            forward ? $0.at(keyPath) : $0
+        } revert: {
+            backward ? $0.at(keyPath) : $0
+        }
     }
 
 }

@@ -26,20 +26,22 @@ public enum DataBuilder {
         }
     }
 
-    public static func buildExpression(_ expression: UInt8) -> Component {
-        Component { $0.append(expression) }
-    }
-
     public static func buildExpression<I: FixedWidthInteger>(_ expression: I) -> Component {
         Component { data in
-            withUnsafeBytes(of: expression) {
+            withUnsafeBytes(of: expression.bigEndian) {
                 data.append(contentsOf: $0)
             }
         }
     }
 
-    public static func buildExpression<R: RawRepresentable>(component: R) -> Component where R.RawValue: FixedWidthInteger {
-        buildExpression(component.rawValue)
+    public static func buildExpression<F: FixedWidthFloatingPoint>(_ expression: F) -> Component {
+        buildExpression(expression.bitPattern)
+    }
+
+    public static func buildExpression<R: RawRepresentable>(
+        _ expression: R
+    ) -> Component where R.RawValue: FixedWidthInteger {
+        buildExpression(expression.rawValue)
     }
 
     public static func buildOptional(_ component: Component?) -> Component {
@@ -66,11 +68,10 @@ public enum DataBuilder {
         return data
     }
 
-    public static func buildExpression<C: ChecksumAlgorithm>(_ expression: C) -> Component {
+    public static func buildExpression<C: Checksum>(_ expression: C) -> Component {
         Component { data in
-            let checksum = expression.calculate(for: data)
-            let component = buildExpression(checksum)
-            component.append(&data)
+            let value = expression.calculate(for: data)
+            buildExpression(value).append(&data)
         }
     }
 

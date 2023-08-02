@@ -34,14 +34,7 @@ extension Optional: Writable where Wrapped: Writable {
 extension Optional: ReadWritable where Wrapped: ReadWritable {
 
     public static var format: Format {
-        Format { container, context in
-            try context.write(.some(Wrapped(from: &container)), for: \.self)
-        } write: { container, value in
-            guard let value = value else {
-                throw CannotWriteNilError()
-            }
-            try value.write(to: &container)
-        }
+        Format(read: readFormat, write: writeFormat)
     }
 
 }

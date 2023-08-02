@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Paul Kraft on 16.07.23.
 //
@@ -26,43 +26,48 @@ extension FixedWidthInteger where Self: ReadWritable {
     }
 
     public static var format: Format {
-        Format { container, context in
-            var value: Self = 0
+        Format(
+            read: .init { container, context in
+                var value: Self = 0
 
-            try withUnsafeMutableBytes(of: &value) { bytes in
-                try bytes.copyBytes(
-                    from: container.consume(MemoryLayout<Self>.size)
-                )
-            }
-
-            let readValue: Self = {
-                switch container.environment.endianness {
-                case .little:
-                    return .init(littleEndian: value)
-                case .big:
-                    return .init(bigEndian: value)
-                case nil:
-                    return value
+                try withUnsafeMutableBytes(of: &value) { bytes in
+                    try bytes.copyBytes(
+                        from: container.consume(MemoryLayout<Self>.size)
+                    )
                 }
-            }()
 
-            try context.write(readValue, for: \.self)
-        } write: { container, value in
-            let writtenValue: Self = {
-                switch container.environment.endianness {
-                case .little:
-                    return value.littleEndian
-                case .big:
-                    return value.bigEndian
-                case nil:
-                    return value
+                let readValue: Self = {
+                    switch container.environment.endianness {
+                    case .little:
+                        return .init(littleEndian: value)
+                    case .big:
+                        return .init(bigEndian: value)
+                    case nil:
+                        return value
+                    }
+                }()
+
+                try context.write(readValue, for: \.self)
+            },
+            write: .init { container, value in
+                let writtenValue: Self = {
+                    switch container.environment.endianness {
+                    case .little:
+                        return value.littleEndian
+                    case .big:
+                        return value.bigEndian
+                    case nil:
+                        return value
+                    }
+                }()
+
+                withUnsafeBytes(of: writtenValue) {
+                    container.append(contentsOf: $0)
                 }
-            }()
-
-            withUnsafeBytes(of: writtenValue) {
-                container.append(contentsOf: $0)
             }
-        }
+        )
     }
 
 }
+
+
