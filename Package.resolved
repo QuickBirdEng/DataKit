@@ -5,9 +5,9 @@
         "package": "CRC",
         "repositoryURL": "https://github.com/QuickBirdEng/crc-swift.git",
         "state": {
-          "branch": "package",
-          "revision": "124a8c9bb853bfc7199012d8e486ec5ccd507f04",
-          "version": null
+          "branch": null,
+          "revision": "136db0392ff9afdd1fe51bc1fdc05aaf7585bc88",
+          "version": "0.1.0"
         }
       }
     ]
