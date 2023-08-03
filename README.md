@@ -28,9 +28,9 @@ struct WeatherStationUpdate {
 The encoded format should be:
 - Each message starts with a byte with the value 0x02.
 - The following byte contains multiple feature flags:
-    -> bit 0 is set: Using °C instead of °F for the temperature
-    -> bit 1 is set: The message contains temperature information
-    -> bit 2 is set: The message contains humidity information
+    - bit 0 is set: Using °C instead of °F for the temperature
+    - bit 1 is set: The message contains temperature information
+    - bit 2 is set: The message contains humidity information
 - Temperature as a big-endian 32-bit floating-point number
 - Relative Humidity as UInt8 in the range of [0, 100]
 - CRC-32 with the default polynomial for the whole message (incl. 0x02 prefix).
