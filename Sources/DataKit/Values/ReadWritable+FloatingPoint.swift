@@ -14,8 +14,11 @@ public protocol FixedWidthFloatingPoint: BinaryFloatingPoint {
     var bitPattern: BitPattern { get }
 }
 
+#if arch(arm64)
 @available(macOS 11.0, iOS 14.0, watchOS 7.0, tvOS 14.0, *)
 extension Float16: FixedWidthFloatingPoint, ReadWritable {}
+#endif
+
 extension Float32: FixedWidthFloatingPoint, ReadWritable {}
 extension Float64: FixedWidthFloatingPoint, ReadWritable {}
 
