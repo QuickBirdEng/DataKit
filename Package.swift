@@ -13,7 +13,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/QuickBirdEng/crc-swift.git",
-            from: "0.1.0"
+            from: "0.1.1"
         ),
     ],
     targets: [
