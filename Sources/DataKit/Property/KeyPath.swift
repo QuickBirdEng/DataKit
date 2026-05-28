@@ -1,11 +1,9 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 28.07.23.
-//
+// KeyPath.swift
 
 import Foundation
+
+// Conformances that let a bare key path expression (e.g. `\.magic`) participate in format
+// builders. These are equivalent to wrapping the key path in `Property(_:)`.
 
 extension KeyPath: FormatProperty {}
 

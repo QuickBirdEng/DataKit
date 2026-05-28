@@ -1,12 +1,12 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 14.07.23.
-//
+// OnWrite.swift
 
 import Foundation
 
+/// Lifts a write-only format into a ``ReadWritable`` context. The format runs on encode and
+/// is a no-op on decode.
+///
+/// Use this for fields you want to emit but do not need to parse back out — e.g. a magic
+/// number that the read side handles via another mechanism, or padding bytes.
 public struct OnWrite<Root: ReadWritable>: ReadableProperty, WritableProperty {
 
     // MARK: Stored Properties

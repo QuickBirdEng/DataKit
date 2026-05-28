@@ -1,14 +1,10 @@
-//
-//  File.swift
-//
-//
-//  Created by Paul Kraft on 26.07.23.
-//
+// Property+Custom.swift
 
 import Foundation
 
 extension Property where Root: Readable {
 
+    /// Fluent equivalent of `Custom(\.kp, read: ...)`.
     public func read(
         _ read: @escaping (inout ReadContainer) -> Value
     ) -> Custom<ReadFormat<Root>> {
@@ -19,6 +15,7 @@ extension Property where Root: Readable {
 
 extension Property where Root: Writable {
 
+    /// Fluent equivalent of `Custom(\.kp, write: ...)`.
     public func write(
         _ write: @escaping (inout WriteContainer, Value) throws -> Void
     ) -> Custom<WriteFormat<Root>> {
@@ -29,6 +26,7 @@ extension Property where Root: Writable {
 
 extension Property where Root: ReadWritable {
 
+    /// Fluent equivalent of `Custom(\.kp, read:write:)`.
     public func read(
         _ read: @escaping (inout ReadContainer) -> Value,
         write: @escaping (inout WriteContainer, Value) throws -> Void

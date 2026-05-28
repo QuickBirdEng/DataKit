@@ -1,11 +1,10 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 16.07.23.
-//
+// ReadWritable+Raw.swift
 
 import Foundation
+
+// `RawRepresentable` types whose `RawValue` is itself `ReadWritable` (the common case for
+// enums backed by integer raw values) automatically gain the corresponding conformance.
+// Unknown raw values during decode throw `ConversionError`.
 
 extension RawRepresentable where Self: Readable, RawValue: Readable {
 

@@ -1,12 +1,14 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 25.06.23.
-//
+// FormatBuilder.swift
 
 import Foundation
 
+/// The shared `@resultBuilder` machinery behind `@ReadBuilder`, `@WriteBuilder`, and the
+/// unified `@FormatBuilder` typealiases on the three core protocols.
+///
+/// Users rarely interact with `FormatBuilder` directly. The relevant typealiases are
+/// ``Readable/ReadBuilder``, ``Writable/WriteBuilder``, and ``ReadWritable/FormatBuilder``.
+/// Builder hooks include `buildArray` (`for ... { ... }` loops) and `buildOptional` (`if`
+/// statements), so format declarations may use control flow.
 @resultBuilder
 public enum FormatBuilder<Root, Format: FormatType> where Format.Root == Root {
 

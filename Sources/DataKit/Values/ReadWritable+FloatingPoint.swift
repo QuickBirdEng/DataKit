@@ -1,12 +1,14 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 16.07.23.
-//
+// ReadWritable+FloatingPoint.swift
 
 import Foundation
 
+/// A floating-point type whose bit pattern is a `FixedWidthInteger`, allowing it to be
+/// serialized by reusing the integer encoding (and thus the current
+/// ``EnvironmentValues/endianness``).
+///
+/// You will not normally conform your own types to this protocol — the standard library
+/// floating-point types (`Float16` on arm64-only platforms, `Float32`, `Float64`) already
+/// conform.
 public protocol FixedWidthFloatingPoint: BinaryFloatingPoint {
     associatedtype BitPattern: FixedWidthInteger
 

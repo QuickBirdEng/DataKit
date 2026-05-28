@@ -1,18 +1,15 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 25.07.23.
-//
+// Conversion+Measurement.swift
 
 extension Conversion {
 
+    /// Projects a `Measurement<UnitType>` target onto the scalar value in `unit`.
     public func converted<UnitType: Dimension>(
         to unit: UnitType
     ) -> Appended<Double> where Target == Measurement<UnitType> {
         appending { $0.converted(to: unit).value }
     }
 
+    /// Lifts a `Double` target into a `Measurement<UnitType>` with the given unit.
     public func converted<UnitType: Dimension>(
         to unit: UnitType
     ) -> Appended<Measurement<UnitType>> where Target == Double {
@@ -23,6 +20,7 @@ extension Conversion {
 
 extension ReversibleConversion {
 
+    /// Reversible projection between `Measurement<UnitType>` and `Double`.
     public func converted<UnitType: Dimension>(
         to unit: UnitType
     ) -> Appended<Double> where Target == Measurement<UnitType> {
@@ -33,6 +31,7 @@ extension ReversibleConversion {
         }
     }
 
+    /// Reversible projection between `Double` and `Measurement<UnitType>`.
     public func converted<UnitType: Dimension>(
         to unit: UnitType
     ) -> Appended<Measurement<UnitType>> where Target == Double {
