@@ -5,10 +5,15 @@ import Foundation
 /// Drops down to raw `ReadContainer`/`WriteContainer` access for a single field.
 ///
 /// `Custom` is the escape hatch for fields that cannot be expressed with the existing
-/// primitives or with a ``Convert`` + ``Conversion``. The `read` closure is not annotated
-/// `throws` in its signature, but it is invoked inside a throwing context — call sites can
-/// throw via `try` inside the closure body using `try!`/`try?` patterns or by lifting the
-/// logic into a helper that throws.
+/// primitives or with a ``Convert`` + ``Conversion``.
+///
+/// - Important: The `read` closure is `(inout ReadContainer) -> Value` — it is *not*
+///   throwing, so it cannot surface errors. Any failure inside it must be resolved locally:
+///   `try!` traps the process and `try?` discards the error as `nil`; neither propagates out
+///   of the format walk. If your read logic genuinely needs to fail (e.g. malformed input),
+///   express it as a ``Conversion``/``ReversibleConversion`` whose throwing read is honored,
+///   rather than as a read-only `Custom`. The `write` closure, by contrast, *is* `throws` and
+///   propagates errors normally.
 ///
 /// If the same custom read/write logic appears more than once in your codebase, lift it
 /// into a reusable ``Conversion`` or ``ReversibleConversion`` instead.

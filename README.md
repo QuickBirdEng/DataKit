@@ -9,7 +9,7 @@
 [![Swift Package Manager](https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg)](https://swift.org/package-manager)
 [![Swift](https://img.shields.io/badge/Swift-5.10%2B-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Documentation](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation)](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation)
+[![Documentation](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FQuickBirdEng%2FDataKit%2Fbadge%3Ftype%3Ddocs)](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation)
 
 ---
 
@@ -21,6 +21,7 @@
 - [Concepts](#concepts)
 - [Built-in conformances](#built-in-conformances)
 - [Requirements](#requirements)
+- [Architecture](#architecture)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -62,7 +63,7 @@ let bytes  = try header.write()          // encode
 ```
 
 That's everything: one `format` declaration drives both directions. Key paths in
-`format` and `init(from:)` must match — see the [reading footgun](#-heads-up-keypath-mismatch-is-a-runtime-error)
+`format` and `init(from:)` must match — see the [reading footgun](#heads-up-keypath-mismatch-is-a-runtime-error)
 below.
 
 ## Real-world example: weather-station packet
@@ -139,7 +140,7 @@ let decoded = try WeatherStationUpdate(bytes)
 > If you only need one direction, conform to ``Readable`` or ``Writable`` and replace
 > `format` with `readFormat` (plus the `init(from:)`) or `writeFormat`.
 
-### ⚠️ Heads-up: keypath mismatch is a runtime error
+### Heads-up: keypath mismatch is a runtime error
 
 The format walk stores each parsed value into a `ReadContext` keyed by a `KeyPath<Self,
 Value>`. Your `init(from:)` retrieves it by the same key path. A mismatch (typo, renamed
@@ -203,9 +204,13 @@ custom logic appears more than once, lift it into a reusable `Conversion`.
 
 ```swift
 Custom(\.timestamp) { container in
-    let raw = try UInt32(from: &container)
+    // The read closure is non-throwing, so it cannot surface errors. `try!` is acceptable
+    // here only because a fixed 4-byte field is present by construction; for input that may
+    // be truncated or malformed, model the field as a `Conversion` instead.
+    let raw = try! UInt32(from: &container)
     return Date(timeIntervalSince1970: TimeInterval(raw))
 } write: { container, date in
+    // The write closure *is* throwing, so errors propagate normally.
     try UInt32(date.timeIntervalSince1970).write(to: &container)
 }
 ```
@@ -313,6 +318,37 @@ format.
 
 Documentation is hosted at [Swift Package Index](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation).
 
+## Architecture
+
+DataKit is organized around three protocols and a set of "property" types that compose
+inside result builders.
+
+- **Core protocols** (`Sources/DataKit/`): `Readable` requires `init(from: ReadContext<Self>)`
+  and a `readFormat`; `Writable` requires a `writeFormat`; `ReadWritable` refines both with a
+  unified `format` from which `readFormat`/`writeFormat` are auto-derived. The "format" these
+  return is a tree of `FormatProperty<Root>` nodes assembled by a `@resultBuilder`
+  (`Builder/`). Each node knows how to read into a `ReadContainer` + `ReadContext` and/or
+  write into a `WriteContainer`.
+- **Two-phase read model**: the format walk parses each value and stores it into a
+  `ReadContext` keyed by `KeyPath<Self, Value>`; the initializer pulls values back out by the
+  *same* key paths. There is no compile-time link between the two — a mismatch throws at
+  runtime (see the [reading footgun](#heads-up-keypath-mismatch-is-a-runtime-error)).
+- **Property building blocks** (`Property/`): `Property`, `Convert`, `Custom`, `Using`,
+  `Scope`, and `Environment` — see [Concepts](#concepts) above.
+- **Environment system** (`Environment/`): a SwiftUI-style key-value store carried through the
+  containers. Built-in keys: `endianness` (host-default), `skipChecksumVerification`, `suffix`.
+  Add custom keys via `EnvironmentKey` + an `EnvironmentValues` extension.
+- **Conversions** (`Conversions/`): reusable bidirectional `Conversion`/`ReversibleConversion`
+  values (`.encoded(.utf8)`, `.prefixCount(_:)`, `.dynamicCount`, `.cast(_:)`, etc.).
+- **Checksums** (`Property/Checksum.swift`): built on the `Checksum` protocol from
+  [crc-swift](https://github.com/QuickBirdEng/crc-swift). Placing a checksum inside a `Scope`
+  makes it cover only that scope; checksum bytes are always written big-endian, independent of
+  the surrounding `endianness` setting.
+
+Endianness is host-default everywhere *except* checksums; set `.endianness(.big)` explicitly
+when implementing portable wire protocols. The library target enables the `StrictConcurrency`
+and `ExistentialAny` upcoming features, so new code should be `Sendable` where possible.
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes. Upgrading from 0.1.x? Read the
@@ -324,7 +360,7 @@ Issues and PRs welcome. Before opening a PR:
 
 - Run `swift test` from the repo root — all existing tests should pass.
 - Add a round-trip test for any new format primitive or built-in conformance.
-- See [`CLAUDE.md`](CLAUDE.md) for an architecture tour.
+- See [Architecture](#architecture) above for a tour of how the pieces fit together.
 
 ## License
 
