@@ -36,7 +36,7 @@ extension FormatBuilder where Root: ReadWritable, Format == ReadWriteFormat<Root
 
     /// A bare ``Checksum`` value verifies on read and computes on write, always in
     /// big-endian.
-    public static func buildExpression<C: Checksum>(_ expression: C) -> Format where C.Value: ReadWritable {
+    public static func buildExpression<C: Checksum & Sendable>(_ expression: C) -> Format where C.Value: ReadWritable {
         .init(
             read: ReadFormatBuilder.buildExpression(expression),
             write: WriteFormatBuilder.buildExpression(expression)

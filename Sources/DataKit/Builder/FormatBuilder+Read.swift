@@ -22,7 +22,7 @@ extension FormatBuilder where Root: Readable, Format == ReadFormat<Root> {
     /// A bare ``Checksum`` value in a `@ReadBuilder` block reads and verifies the checksum
     /// bytes (always in big-endian). To control the input range, wrap the relevant section
     /// in a ``Scope``.
-    public static func buildExpression<C: Checksum>(_ expression: C) -> Format where C.Value: Readable {
+    public static func buildExpression<C: Checksum & Sendable>(_ expression: C) -> Format where C.Value: Readable {
         buildExpression(
             ReadFormat { container, _ in
                 let verificationData = container.consumedData
@@ -35,7 +35,9 @@ extension FormatBuilder where Root: Readable, Format == ReadFormat<Root> {
     /// Any ``ReadableProperty`` (e.g. ``Property``, ``Convert``, ``Custom``, ``Scope``)
     /// participates in a read builder.
     public static func buildExpression<V: ReadableProperty>(_ expression: V) -> Format where V.Root == Root {
-        .init(read: expression.read)
+        .init { container, context in
+            try expression.read(from: &container, context: &context)
+        }
     }
 
     /// Bare key-path syntax (`\.field`) lifts to ``Property``.

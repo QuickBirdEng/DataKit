@@ -24,7 +24,7 @@ extension Float16: FixedWidthFloatingPoint, ReadWritable {}
 extension Float32: FixedWidthFloatingPoint, ReadWritable {}
 extension Float64: FixedWidthFloatingPoint, ReadWritable {}
 
-extension FixedWidthFloatingPoint where Self: ReadWritable, BitPattern: ReadWritable {
+extension FixedWidthFloatingPoint where Self: ReadWritable & Sendable, BitPattern: ReadWritable & Sendable {
 
     public init(from context: ReadContext<Self>) throws {
         try self.init(bitPattern: context.read(for: \.bitPattern))

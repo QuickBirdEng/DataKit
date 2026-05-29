@@ -28,3 +28,5 @@ public struct OnWrite<Root: ReadWritable>: ReadableProperty, WritableProperty {
     }
 
 }
+
+extension OnWrite: Sendable {}

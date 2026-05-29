@@ -25,9 +25,9 @@ public struct Custom<Format: FormatType>: FormatProperty {
     // MARK: Initialization
 
     /// Read-only custom logic.
-    public init<Root, Value>(
+    public init<Root, Value: Sendable>(
         _ keyPath: KeyPath<Root, Value>,
-        read: @escaping (inout ReadContainer) -> Value
+        read: @escaping @Sendable (inout ReadContainer) -> Value
     ) where Root: Readable, Format == ReadFormat<Root> {
         self.format = ReadFormat { container, context in
             try context.write(read(&container), for: keyPath)
@@ -35,9 +35,9 @@ public struct Custom<Format: FormatType>: FormatProperty {
     }
 
     /// Write-only custom logic.
-    public init<Root, Value>(
+    public init<Root, Value: Sendable>(
         _ keyPath: KeyPath<Root, Value>,
-        write: @escaping (inout WriteContainer, Value) throws -> Void
+        write: @escaping @Sendable (inout WriteContainer, Value) throws -> Void
     ) where Root: Writable, Format == WriteFormat<Root> {
         self.format = WriteFormat { container, root in
             try write(&container, root[keyPath: keyPath])
@@ -45,10 +45,10 @@ public struct Custom<Format: FormatType>: FormatProperty {
     }
 
     /// Paired custom read and write for a ``ReadWritable`` root.
-    public init<Root, Value>(
+    public init<Root, Value: Sendable>(
         _ keyPath: KeyPath<Root, Value>,
-        read: @escaping (inout ReadContainer) -> Value,
-        write: @escaping (inout WriteContainer, Value) throws -> Void
+        read: @escaping @Sendable (inout ReadContainer) -> Value,
+        write: @escaping @Sendable (inout WriteContainer, Value) throws -> Void
     ) where Root: ReadWritable, Format == ReadWriteFormat<Root> {
         self.format = ReadWriteFormat(
             read: Custom<ReadFormat>(keyPath, read: read).format,
@@ -69,3 +69,5 @@ extension Custom: WritableProperty where Format: WritableProperty {
         try format.write(to: &container, using: root)
     }
 }
+
+extension Custom: Sendable where Format: Sendable {}

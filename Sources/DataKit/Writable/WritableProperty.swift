@@ -3,7 +3,7 @@
 import Foundation
 
 /// A ``FormatProperty`` that can encode a value of `Root` into a ``WriteContainer``.
-public protocol WritableProperty<Root>: FormatProperty where Root: Writable {
+public protocol WritableProperty<Root>: FormatProperty where Root: Writable & Sendable {
 
     /// Appends bytes derived from `root` to `container`.
     ///
@@ -20,12 +20,12 @@ public struct WriteFormat<Root: Writable>: WritableProperty {
 
     // MARK: Stored Properties
 
-    private let _write: (inout WriteContainer, Root) throws -> Void
+    private let _write: @Sendable (inout WriteContainer, Root) throws -> Void
 
     // MARK: Initialization
 
     /// Wraps an imperative write closure as a `WriteFormat`.
-    public init(write: @escaping (inout WriteContainer, Root) throws -> Void) {
+    public init(write: @escaping @Sendable (inout WriteContainer, Root) throws -> Void) {
         self._write = write
     }
 
@@ -49,4 +49,6 @@ extension WriteFormat: FormatType {
     }
 
 }
+
+extension WriteFormat: Sendable {}
 

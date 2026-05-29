@@ -36,3 +36,6 @@ extension Property: WritableProperty where Root: Writable, Value: Writable {
         try root[keyPath: keyPath].write(to: &container)
     }
 }
+
+extension Property: Sendable where Root: Sendable, Value: Sendable {}
+

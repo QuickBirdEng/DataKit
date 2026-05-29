@@ -24,7 +24,7 @@ import Foundation
 ///
 /// If your type round-trips in both directions, prefer ``ReadWritable`` so you only declare
 /// the format once.
-public protocol Writable {
+public protocol Writable: Sendable {
 
     /// The declarative description of how to serialize `Self` into bytes.
     ///

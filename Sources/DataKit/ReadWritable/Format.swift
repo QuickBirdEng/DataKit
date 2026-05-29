@@ -8,7 +8,7 @@ import Foundation
 /// ``Property``, ``Convert``, ``Custom``, ``Using``, ``Scope``, and ``Environment`` already
 /// conform. Conditional conformances to ``ReadableProperty`` and ``WritableProperty``
 /// determine whether the value can be used in a read, write, or read-write context.
-public protocol FormatProperty<Root> {
+public protocol FormatProperty<Root>: Sendable {
     associatedtype Root
 }
 

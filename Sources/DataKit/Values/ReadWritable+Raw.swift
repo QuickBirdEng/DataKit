@@ -6,7 +6,7 @@ import Foundation
 // enums backed by integer raw values) automatically gain the corresponding conformance.
 // Unknown raw values during decode throw `ConversionError`.
 
-extension RawRepresentable where Self: Readable, RawValue: Readable {
+extension RawRepresentable where Self: Readable & Sendable, RawValue: Readable & Sendable {
 
     public init(from context: ReadContext<Self>) throws {
         let rawValue = try context.read(for: \.rawValue)
@@ -23,7 +23,7 @@ extension RawRepresentable where Self: Readable, RawValue: Readable {
 
 }
 
-extension RawRepresentable where Self: Writable, RawValue: Writable {
+extension RawRepresentable where Self: Writable & Sendable, RawValue: Writable & Sendable {
 
     @WriteBuilder
     public static var writeFormat: WriteFormat<Self> {
@@ -32,7 +32,7 @@ extension RawRepresentable where Self: Writable, RawValue: Writable {
 
 }
 
-extension RawRepresentable where Self: ReadWritable, RawValue: ReadWritable {
+extension RawRepresentable where Self: ReadWritable & Sendable, RawValue: ReadWritable & Sendable {
 
     @FormatBuilder
     public static var format: Format {

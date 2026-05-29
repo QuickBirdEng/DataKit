@@ -1,23 +1,22 @@
 // Sendable.swift
 //
-// `Sendable` conformances for DataKit's value-type formats, conversions, containers, and
-// environment.
+// `Sendable` conformances for DataKit types that cannot be co-located with their
+// declarations because of Swift 6's same-file rule. Conformances for value types that
+// store `@Sendable` closures or pure-data fields live inline in their own source files.
 //
-// Two design notes:
+// The remaining `@unchecked Sendable` conformances below fall into two categories:
 //
-// 1. Several types here are marked `@unchecked Sendable` rather than `Sendable`. The reason
-//    is almost always one of: (a) they store an `@escaping` closure whose generic
-//    parameters Swift cannot statically prove sendable; (b) they store a `KeyPath`, which
-//    only gained automatic `Sendable` inference in Swift 5.10 — DataKit's tools floor is
-//    5.9. All such structs are immutable: their stored properties are `let`-bound and they
-//    have no mutating methods, so concurrent use is sound in practice. If you add a
-//    mutable stored property or a mutable method, revisit the conformance.
+// 1. **Closure-bearing types whose stored closures are not yet `@Sendable`-annotated.**
+//    `Using`, `Environment`, `EnvironmentProperty`, `Conversion`, `ReversibleConversion`,
+//    and `DataBuilder.Component` carry closures that come from user call sites; making
+//    them `@Sendable` would propagate breaking changes through every caller of those
+//    types' closure-taking initializers. The structs are immutable, so concurrent use is
+//    sound in practice, but tightening this is a future major-version cleanup.
 //
-// 2. Closures supplied by users at the call site (e.g. inside `Custom`, `Convert`, `Using`)
-//    are not marked `@Sendable` in the public initializers. That would be a source-breaking
-//    API change. Capturing non-`Sendable` mutable state from such a closure and then
-//    sending the resulting `FormatProperty` across actor boundaries is undefined behavior
-//    today; document this as a known limitation rather than fix it via API breakage.
+// 2. **`Any`-storing types.** `ReadContainer`, `WriteContainer`, `ReadContext`, and
+//    `EnvironmentValues` carry untyped dictionaries (for environment propagation and for
+//    the keyed `ReadContext` scratchpad). These cannot be statically proven `Sendable`,
+//    but they have no mutating methods that race against concurrent use.
 
 import Foundation
 
@@ -30,38 +29,18 @@ extension ReadContext: @unchecked Sendable {}
 // MARK: - Environment
 
 extension EnvironmentValues: @unchecked Sendable {}
-// `Endianness: Sendable` and `Suffix: Sendable` are declared in their own source files
-// because Swift 6 requires checked `Sendable` conformances to be co-located with the type.
 
-// MARK: - Format types
+// MARK: - Closure-bearing format primitives (future-major-version cleanup)
 
-extension ReadFormat: @unchecked Sendable {}
-extension WriteFormat: @unchecked Sendable {}
-extension ReadWriteFormat: @unchecked Sendable {}
-
-// MARK: - Format-property primitives
-
-extension Property: @unchecked Sendable {}
-extension Scope: @unchecked Sendable {}
 extension Using: @unchecked Sendable {}
-extension Custom: @unchecked Sendable {}
-extension Convert: @unchecked Sendable {}
 extension Environment: @unchecked Sendable {}
 extension EnvironmentProperty: @unchecked Sendable {}
-extension OnRead: @unchecked Sendable {}
-extension OnWrite: @unchecked Sendable {}
-extension ChecksumProperty: @unchecked Sendable {}
 
-// MARK: - Conversions
+// MARK: - Conversions (future-major-version cleanup)
 
 extension Conversion: @unchecked Sendable {}
 extension ReversibleConversion: @unchecked Sendable {}
 
-// MARK: - Sequence wrappers
-//
-// `PrefixCountArray` and `DynamicCountArray` declare their conditional `Sendable`
-// conformance inline in their own source files (same-file rule for checked conformances).
-
-// MARK: - Result-builder accumulator
+// MARK: - Result-builder accumulator (future-major-version cleanup)
 
 extension DataBuilder.Component: @unchecked Sendable {}

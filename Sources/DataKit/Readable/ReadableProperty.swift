@@ -3,7 +3,7 @@
 import Foundation
 
 /// A ``FormatProperty`` that can decode bytes from a ``ReadContainer`` into a ``ReadContext``.
-public protocol ReadableProperty<Root>: FormatProperty where Root: Readable {
+public protocol ReadableProperty<Root>: FormatProperty where Root: Readable & Sendable {
 
     /// Parses values from `container` and stores them into `context`.
     ///
@@ -21,12 +21,12 @@ public struct ReadFormat<Root: Readable>: ReadableProperty {
 
     // MARK: Stored Properties
 
-    private let _read: (inout ReadContainer, inout ReadContext<Root>) throws -> Void
+    private let _read: @Sendable (inout ReadContainer, inout ReadContext<Root>) throws -> Void
 
     // MARK: Initialization
 
     /// Wraps an imperative read closure as a `ReadFormat`.
-    public init(read: @escaping (inout ReadContainer, inout ReadContext<Root>) throws -> Void) {
+    public init(read: @escaping @Sendable (inout ReadContainer, inout ReadContext<Root>) throws -> Void) {
         self._read = read
     }
 
@@ -49,4 +49,6 @@ extension ReadFormat: FormatType {
         }
     }
 }
+
+extension ReadFormat: Sendable {}
 

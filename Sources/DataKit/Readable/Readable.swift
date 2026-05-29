@@ -37,7 +37,7 @@ import Foundation
 ///
 /// If your type round-trips in both directions, prefer ``ReadWritable`` so you only declare
 /// the format once.
-public protocol Readable {
+public protocol Readable: Sendable {
 
     /// Builds the value from the populated context after the format walk has run.
     ///

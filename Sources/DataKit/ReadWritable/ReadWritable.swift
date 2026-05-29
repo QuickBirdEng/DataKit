@@ -47,13 +47,19 @@ extension ReadWritable {
 
     public static var readFormat: ReadFormat<Self> {
         get throws {
-            try ReadFormat(read: format.read)
+            let format = try format
+            return ReadFormat { container, context in
+                try format.read(from: &container, context: &context)
+            }
         }
     }
 
     public static var writeFormat: WriteFormat<Self> {
         get throws {
-            try WriteFormat(write: format.write)
+            let format = try format
+            return WriteFormat { container, root in
+                try format.write(to: &container, using: root)
+            }
         }
     }
 

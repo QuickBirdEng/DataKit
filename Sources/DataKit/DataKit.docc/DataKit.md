@@ -74,6 +74,10 @@ own.
 
 ## Topics
 
+### Release Notes
+
+- <doc:Migrating-to-0.2.0>
+
 ### Core Protocols
 
 - ``Readable``

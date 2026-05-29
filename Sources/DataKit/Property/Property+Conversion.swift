@@ -2,7 +2,7 @@
 
 import Foundation
 
-extension Property where Root: Readable {
+extension Property where Root: Readable, Value: Sendable {
 
     /// Fluent equivalent of `Convert(\.kp, conversion: ...)` for reading.
     public func conversion<ConvertedValue: Readable>(
@@ -13,14 +13,14 @@ extension Property where Root: Readable {
 
     /// Fluent equivalent of `Convert(\.kp, convert: ...)` for reading.
     public func converted<ConvertedValue: Readable>(
-        _ convert: @escaping (ConvertedValue) throws -> Value
+        _ convert: @escaping @Sendable (ConvertedValue) throws -> Value
     ) -> Convert<ReadFormat<Root>> {
         Convert(keyPath, convert: convert)
     }
 
 }
 
-extension Property where Root: Writable {
+extension Property where Root: Writable, Value: Sendable {
 
     /// Fluent equivalent of `Convert(\.kp, conversion: ...)` for writing.
     public func conversion<ConvertedValue: Writable>(
@@ -31,14 +31,14 @@ extension Property where Root: Writable {
 
     /// Fluent equivalent of `Convert(\.kp, convert: ...)` for writing.
     public func converted<ConvertedValue: Writable>(
-        _ convert: @escaping (Value) throws -> ConvertedValue
+        _ convert: @escaping @Sendable (Value) throws -> ConvertedValue
     ) -> Convert<WriteFormat<Root>> {
         Convert(keyPath, convert: convert)
     }
 
 }
 
-extension Property where Root: ReadWritable {
+extension Property where Root: ReadWritable, Value: Sendable {
 
     /// Fluent equivalent of `Convert(\.kp, conversion: ...)` for read+write.
     public func conversion<ConvertedValue: ReadWritable>(
@@ -49,8 +49,8 @@ extension Property where Root: ReadWritable {
 
     /// Fluent equivalent of `Convert(\.kp, reading:writing:)`.
     public func converted<ConvertedValue: ReadWritable>(
-        reading: @escaping (ConvertedValue) throws -> Value,
-        writing: @escaping (Value) throws -> ConvertedValue
+        reading: @escaping @Sendable (ConvertedValue) throws -> Value,
+        writing: @escaping @Sendable (Value) throws -> ConvertedValue
     ) -> Convert<ReadWriteFormat<Root>> {
         Convert(keyPath, reading: reading, writing: writing)
     }

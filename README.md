@@ -7,7 +7,7 @@
 - Handles real-world wire-protocol concerns: endianness, bit-packed flags, length prefixes, dynamic suffixes, and CRC checksums.
 
 [![Swift Package Manager](https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg)](https://swift.org/package-manager)
-[![Swift](https://img.shields.io/badge/Swift-5.9%2B-orange.svg)](https://swift.org)
+[![Swift](https://img.shields.io/badge/Swift-5.10%2B-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Documentation](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation)](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation)
 
@@ -30,7 +30,7 @@ Add DataKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/QuickBirdEng/DataKit.git", from: "0.1.0"),
+    .package(url: "https://github.com/QuickBirdEng/DataKit.git", from: "0.2.0"),
 ],
 ```
 
@@ -306,12 +306,17 @@ format.
 
 ## Requirements
 
-- Swift 5.9+
-- iOS 13+, macOS 10.15+, tvOS 13+, watchOS 6+, Linux (Swift 5.9+)
+- Swift 5.10+
+- iOS 13+, macOS 10.15+, tvOS 13+, watchOS 6+, Linux (Swift 5.10+)
 - Single dependency: [crc-swift](https://github.com/QuickBirdEng/crc-swift) (re-exported
   as `CRC`)
 
 Documentation is hosted at [Swift Package Index](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes. Upgrading from 0.1.x? Read the
+[migration guide](Sources/DataKit/DataKit.docc/Migrating-to-0.2.0.md).
 
 ## Contributing
 

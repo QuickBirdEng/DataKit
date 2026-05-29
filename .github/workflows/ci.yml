@@ -7,11 +7,8 @@ on:
 
 jobs:
   macos:
-    name: macOS (Swift ${{ matrix.swift }})
+    name: macOS
     runs-on: macos-14
-    strategy:
-      matrix:
-        swift: ["5.9", "5.10"]
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
@@ -29,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        swift: ["5.9", "5.10"]
+        swift: ["5.10"]
     steps:
       - uses: actions/checkout@v4
       - uses: swift-actions/setup-swift@v2

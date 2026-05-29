@@ -88,3 +88,5 @@ extension Scope: WritableProperty where Format: WritableProperty {
         container.append(nestedContainer.data)
     }
 }
+
+extension Scope: Sendable where Format: Sendable {}

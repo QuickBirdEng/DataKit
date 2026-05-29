@@ -44,3 +44,5 @@ public struct ReadWriteFormat<Root: ReadWritable>: FormatType, ReadableProperty,
 
 }
 
+extension ReadWriteFormat: Sendable {}
+

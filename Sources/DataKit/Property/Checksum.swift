@@ -23,7 +23,7 @@ import Foundation
 /// }
 /// CRC32.default                  // bare checksum expression covers the scope
 /// ```
-public struct ChecksumProperty<ChecksumType: Checksum, Format: FormatType>: FormatProperty {
+public struct ChecksumProperty<ChecksumType: Checksum & Sendable, Format: FormatType>: FormatProperty {
 
     // MARK: Nested Types
 
@@ -44,12 +44,12 @@ public struct ChecksumProperty<ChecksumType: Checksum, Format: FormatType>: Form
     ///     the `ReadContext`. When `nil`, the value is verified and discarded.
     public init<Root: Readable>(
         _ checksum: ChecksumType,
-        at keyPath: KeyPath<Root, Value>? = nil
-    ) where Format == ReadFormat<Root>, ChecksumType.Value: Readable {
+        at keyPath: KeyPath<Root, ChecksumType.Value>? = nil
+    ) where Format == ReadFormat<Root>, ChecksumType.Value: Readable & Sendable {
         self.format = ReadFormatBuilder.buildExpression(
             ReadFormat { container, context in
                 let verificationData = container.consumedData
-                let value = try Value(from: &container)
+                let value = try ChecksumType.Value(from: &container)
                 if !container.environment.skipChecksumVerification {
                     try checksum.verify(value, for: verificationData)
                 }
@@ -65,12 +65,12 @@ public struct ChecksumProperty<ChecksumType: Checksum, Format: FormatType>: Form
     /// optional-typed `keyPath`.
     public init<Root: Readable>(
         _ checksum: ChecksumType,
-        at keyPath: KeyPath<Root, Value?>? = nil
-    ) where Format == ReadFormat<Root>, ChecksumType.Value: Readable {
+        at keyPath: KeyPath<Root, ChecksumType.Value?>? = nil
+    ) where Format == ReadFormat<Root>, ChecksumType.Value: Readable & Sendable {
         self.format = ReadFormatBuilder.buildExpression(
             ReadFormat { container, context in
                 let verificationData = container.consumedData
-                let value = try Value(from: &container)
+                let value = try ChecksumType.Value(from: &container)
                 if !container.environment.skipChecksumVerification {
                     try checksum.verify(value, for: verificationData)
                 }
@@ -86,8 +86,8 @@ public struct ChecksumProperty<ChecksumType: Checksum, Format: FormatType>: Form
     /// writes the value carried by `Root` directly.
     public init<Root: Writable>(
         _ checksum: ChecksumType,
-        at keyPath: KeyPath<Root, Value>? = nil
-    ) where Format == WriteFormat<Root>, ChecksumType.Value: Writable {
+        at keyPath: KeyPath<Root, ChecksumType.Value>? = nil
+    ) where Format == WriteFormat<Root>, ChecksumType.Value: Writable & Sendable {
         self.format = WriteFormatBuilder.buildExpression(
             WriteFormat { container, root in
                 let value = keyPath.map { root[keyPath: $0] }
@@ -102,8 +102,8 @@ public struct ChecksumProperty<ChecksumType: Checksum, Format: FormatType>: Form
     /// If the property is `nil`, the checksum is computed over the buffer instead.
     public init<Root: Writable>(
         _ checksum: ChecksumType,
-        at keyPath: KeyPath<Root, Value?>? = nil
-    ) where Format == WriteFormat<Root>, ChecksumType.Value: Writable {
+        at keyPath: KeyPath<Root, ChecksumType.Value?>? = nil
+    ) where Format == WriteFormat<Root>, ChecksumType.Value: Writable & Sendable {
         self.format = WriteFormatBuilder.buildExpression(
             WriteFormat { container, root in
                 let value = keyPath.flatMap { root[keyPath: $0] }
@@ -117,13 +117,13 @@ public struct ChecksumProperty<ChecksumType: Checksum, Format: FormatType>: Form
     /// Unified read/write of a checksum for a ``ReadWritable`` root.
     public init<Root: ReadWritable>(
         _ checksum: ChecksumType,
-        at keyPath: KeyPath<Root, Value>? = nil
-    ) where Format == ReadWriteFormat<Root>, ChecksumType.Value: ReadWritable {
+        at keyPath: KeyPath<Root, ChecksumType.Value>? = nil
+    ) where Format == ReadWriteFormat<Root>, ChecksumType.Value: ReadWritable & Sendable {
         self.format = ReadWriteFormatBuilder.buildExpression(
             ReadWriteFormat(
                 read: .init { container, context in
                     let verificationData = container.consumedData
-                    let value = try Value(from: &container)
+                    let value = try ChecksumType.Value(from: &container)
                     if !container.environment.skipChecksumVerification {
                         try checksum.verify(value, for: verificationData)
                     }
@@ -144,13 +144,13 @@ public struct ChecksumProperty<ChecksumType: Checksum, Format: FormatType>: Form
     /// Unified read/write of a checksum for a ``ReadWritable`` root with an optional value path.
     public init<Root: ReadWritable>(
         _ checksum: ChecksumType,
-        at keyPath: KeyPath<Root, Value?>? = nil
-    ) where Format == ReadWriteFormat<Root>, ChecksumType.Value: ReadWritable {
+        at keyPath: KeyPath<Root, ChecksumType.Value?>? = nil
+    ) where Format == ReadWriteFormat<Root>, ChecksumType.Value: ReadWritable & Sendable {
         self.format = ReadWriteFormatBuilder.buildExpression(
             ReadWriteFormat(
                 read: .init { container, context in
                     let verificationData = container.consumedData
-                    let value = try Value(from: &container)
+                    let value = try ChecksumType.Value(from: &container)
                     if !container.environment.skipChecksumVerification {
                         try checksum.verify(value, for: verificationData)
                     }
@@ -169,3 +169,5 @@ public struct ChecksumProperty<ChecksumType: Checksum, Format: FormatType>: Form
     }
 
 }
+
+extension ChecksumProperty: Sendable where Format: Sendable {}

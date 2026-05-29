@@ -21,7 +21,7 @@ extension UInt16: ReadWritable {}
 extension UInt32: ReadWritable {}
 extension UInt64: ReadWritable {}
 
-extension FixedWidthInteger where Self: ReadWritable {
+extension FixedWidthInteger where Self: ReadWritable & Sendable {
 
     public init(from context: ReadContext<Self>) throws {
         self = try context.read(for: \.self)

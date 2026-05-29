@@ -29,3 +29,5 @@ public struct OnRead<Root: ReadWritable>: ReadableProperty, WritableProperty {
     public func write(to container: inout WriteContainer, using root: Root) throws {}
 
 }
+
+extension OnRead: Sendable {}

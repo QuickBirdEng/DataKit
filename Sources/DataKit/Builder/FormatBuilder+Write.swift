@@ -10,7 +10,9 @@ extension FormatBuilder where Root: Writable, Format == WriteFormat<Root> {
     /// Any ``WritableProperty`` (e.g. ``Property``, ``Convert``, ``Custom``, ``Scope``)
     /// participates in a write builder.
     public static func buildExpression<V: WritableProperty>(_ expression: V) -> Format where V.Root == Format.Root {
-        .init(write: expression.write)
+        .init { container, root in
+            try expression.write(to: &container, using: root)
+        }
     }
 
     /// A ``Writable`` literal in a `@WriteBuilder` block is serialized verbatim — used for
@@ -29,7 +31,7 @@ extension FormatBuilder where Root: Writable, Format == WriteFormat<Root> {
     /// A bare ``Checksum`` value in a `@WriteBuilder` block computes the checksum over the
     /// buffer accumulated so far and appends it (always in big-endian). To control the
     /// input range, wrap the relevant section in a ``Scope``.
-    public static func buildExpression<C: Checksum>(_ expression: C) -> Format where C.Value: Writable {
+    public static func buildExpression<C: Checksum & Sendable>(_ expression: C) -> Format where C.Value: Writable {
         buildExpression(
             WriteFormat { container, _ in
                 try expression.calculate(for: container.data)
