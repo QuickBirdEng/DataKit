@@ -22,14 +22,14 @@ public struct Using<Value, Format: FormatType>: FormatProperty {
     // MARK: Stored Properties
 
     private let keyPath: KeyPath<Root, Value>
-    private let format: (Value) throws -> Format
+    private let format: @Sendable (Value) throws -> Format
 
     // MARK: Initialization
 
     /// Read-only branching on a previously-read value.
     public init<Root: Readable>(
         _ keyPath: KeyPath<Root, Value>,
-        @FormatBuilder<Root, Format> with format: @escaping (Value) throws -> Format
+        @FormatBuilder<Root, Format> with format: @escaping @Sendable (Value) throws -> Format
     ) where Format == ReadFormat<Root> {
         self.keyPath = keyPath
         self.format = format
@@ -38,7 +38,7 @@ public struct Using<Value, Format: FormatType>: FormatProperty {
     /// Write-only branching on a value carried by `root`.
     public init<Root: Writable>(
         _ keyPath: KeyPath<Root, Value>,
-        @FormatBuilder<Root, Format> with format: @escaping (Value) throws -> Format
+        @FormatBuilder<Root, Format> with format: @escaping @Sendable (Value) throws -> Format
     ) where Format == WriteFormat<Root> {
         self.keyPath = keyPath
         self.format = format
@@ -47,13 +47,15 @@ public struct Using<Value, Format: FormatType>: FormatProperty {
     /// Read+write branching for a ``ReadWritable`` root.
     public init<Root: ReadWritable>(
         _ keyPath: KeyPath<Root, Value>,
-        @FormatBuilder<Root, Format> with format: @escaping (Value) throws -> Format
+        @FormatBuilder<Root, Format> with format: @escaping @Sendable (Value) throws -> Format
     ) where Format == ReadWriteFormat<Root> {
         self.keyPath = keyPath
         self.format = format
     }
 
 }
+
+extension Using: Sendable {}
 
 extension Using: ReadableProperty where Format: ReadableProperty {
     public func read(from container: inout ReadContainer, context: inout ReadContext<Root>) throws {

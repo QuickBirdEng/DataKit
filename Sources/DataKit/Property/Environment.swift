@@ -21,14 +21,14 @@ public struct Environment<Value, Format: FormatType>: FormatProperty {
     // MARK: Stored Properties
 
     private let keyPath: KeyPath<EnvironmentValues, Value>
-    private let format: (Value) throws -> Format
+    private let format: @Sendable (Value) throws -> Format
 
     // MARK: Initialization
 
     /// Read-only variant.
     public init<Root: Readable> (
         _ keyPath: KeyPath<EnvironmentValues, Value>,
-        @FormatBuilder<Root, Format> format: @escaping (Value) throws -> Format
+        @FormatBuilder<Root, Format> format: @escaping @Sendable (Value) throws -> Format
     ) where Format == ReadFormat<Root> {
         self.keyPath = keyPath
         self.format = format
@@ -37,7 +37,7 @@ public struct Environment<Value, Format: FormatType>: FormatProperty {
     /// Write-only variant.
     public init<Root: Writable> (
         _ keyPath: KeyPath<EnvironmentValues, Value>,
-        @FormatBuilder<Root, Format> format: @escaping (Value) throws -> Format
+        @FormatBuilder<Root, Format> format: @escaping @Sendable (Value) throws -> Format
     ) where Format == WriteFormat<Root> {
         self.keyPath = keyPath
         self.format = format
@@ -46,13 +46,15 @@ public struct Environment<Value, Format: FormatType>: FormatProperty {
     /// Read+write variant for a ``ReadWritable`` root.
     public init<Root: ReadWritable> (
         _ keyPath: KeyPath<EnvironmentValues, Value>,
-        @FormatBuilder<Root, Format> format: @escaping (Value) throws -> Format
+        @FormatBuilder<Root, Format> format: @escaping @Sendable (Value) throws -> Format
     ) where Format == ReadWriteFormat<Root> {
         self.keyPath = keyPath
         self.format = format
     }
 
 }
+
+extension Environment: Sendable {}
 
 extension Environment: ReadableProperty where Format: ReadableProperty {
     public func read(from container: inout ReadContainer, context: inout ReadContext<Root>) throws {

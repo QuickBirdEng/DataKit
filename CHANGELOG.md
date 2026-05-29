@@ -46,10 +46,11 @@ upgrade.
 
 ### Fixed
 
-- **`skipChecksumVerification` is now honored.** `ChecksumProperty` previously read the
-  environment value but never consulted it, so checksums were always verified even when
-  verification had been disabled. The flag now correctly suppresses verification while
-  still consuming the checksum bytes.
+- **`skipChecksumVerification` is now honored.** Reading the environment value but never
+  consulting it meant checksums were always verified even when verification had been
+  disabled. The flag now correctly suppresses verification (while still consuming the
+  checksum bytes) for both the explicit `ChecksumProperty` and the bare-checksum builder
+  form (`CRC32.default` inside a format block).
 - Corrected the broken `crc-swift` repository link in the README (`crc-swift.org` →
   `crc-swift`).
 
@@ -69,8 +70,12 @@ fixes.
 - `FormatProperty` — and therefore `ReadableProperty` and `WritableProperty` — now refine
   `Sendable`; their `Root` must be `Sendable`.
 - Closures passed to `Custom` and `Convert` (and the fluent `Property.read`/`.write`/
-  `.converted` helpers) must now be `@Sendable`.
+  `.converted` helpers), to `Using` and `Environment`, and to the `transformEnvironment`
+  modifiers must now be `@Sendable`. The value passed to `.environment(_:_:)` must be
+  `Sendable`.
 - `Checksum` types used inside a format must be `Sendable`.
+- `UnexpectedValueError.expectedValue` and `.actualValue` are now typed `any Sendable`
+  instead of `Any`.
 - `KeyPath` no longer conforms to `FormatProperty` / `ReadableProperty` /
   `WritableProperty` directly. Bare key-path syntax (`\.field`) inside a format builder
   still works; passing a key path where a `FormatProperty` is expected **outside** a

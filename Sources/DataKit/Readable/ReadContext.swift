@@ -25,7 +25,7 @@ public struct ReadContext<Root: Readable> {
     ///
     /// This usually indicates a mismatch between the key paths used in the format declaration
     /// and in `init(from:)`, or a conditional branch in the format that never executed.
-    public struct ValueDoesNotExistError: Error, @unchecked Sendable {
+    public struct ValueDoesNotExistError: Error, Sendable {
 
         /// The key path for which no value was found.
         public let keyPath: PartialKeyPath<Root>

@@ -1,46 +1,41 @@
 // Sendable.swift
 //
-// `Sendable` conformances for DataKit types that cannot be co-located with their
-// declarations because of Swift 6's same-file rule. Conformances for value types that
-// store `@Sendable` closures or pure-data fields live inline in their own source files.
+// The `@unchecked Sendable` conformances below all share a single reason: each type stores a
+// value the compiler cannot statically prove `Sendable`, yet the type is immutable after
+// construction and has no method that mutates shared state, so concurrent use is sound.
 //
-// The remaining `@unchecked Sendable` conformances below fall into two categories:
-//
-// 1. **Closure-bearing types whose stored closures are not yet `@Sendable`-annotated.**
-//    `Using`, `Environment`, `EnvironmentProperty`, `Conversion`, `ReversibleConversion`,
-//    and `DataBuilder.Component` carry closures that come from user call sites; making
-//    them `@Sendable` would propagate breaking changes through every caller of those
-//    types' closure-taking initializers. The structs are immutable, so concurrent use is
-//    sound in practice, but tightening this is a future major-version cleanup.
-//
-// 2. **`Any`-storing types.** `ReadContainer`, `WriteContainer`, `ReadContext`, and
+// 1. **`Any`-storing types.** `ReadContainer`, `WriteContainer`, `ReadContext`, and
 //    `EnvironmentValues` carry untyped dictionaries (for environment propagation and for
-//    the keyed `ReadContext` scratchpad). These cannot be statically proven `Sendable`,
-//    but they have no mutating methods that race against concurrent use.
+//    the keyed `ReadContext` scratchpad). The boxed values cannot be proven `Sendable`.
+//
+// 2. **Types storing closures over un-`Sendable`-constrained generics.** `Conversion`,
+//    `ReversibleConversion`, and `DataBuilder.Component` store transform closures over
+//    generic `Source`/`Target`/`Element` parameters that are not constrained to `Sendable`.
+//    Making the closures `@Sendable` would require propagating `Sendable` bounds through
+//    every conversion operator and builder expression — a wide breaking change deferred to a
+//    future major version.
+//
+// Conformances that *can* be checked (value types whose stored closures are `@Sendable` and
+// whose other fields are `Sendable`) live inline in their own source files — see `Using`,
+// `Environment`, `EnvironmentProperty`, `Convert`, `Custom`, `Scope`, etc.
 
 import Foundation
 
-// MARK: - Containers
+// MARK: - Containers (Any-storing)
 
 extension ReadContainer: @unchecked Sendable {}
 extension WriteContainer: @unchecked Sendable {}
 extension ReadContext: @unchecked Sendable {}
 
-// MARK: - Environment
+// MARK: - Environment (Any-storing)
 
 extension EnvironmentValues: @unchecked Sendable {}
 
-// MARK: - Closure-bearing format primitives (future-major-version cleanup)
-
-extension Using: @unchecked Sendable {}
-extension Environment: @unchecked Sendable {}
-extension EnvironmentProperty: @unchecked Sendable {}
-
-// MARK: - Conversions (future-major-version cleanup)
+// MARK: - Conversions (closures over un-Sendable-constrained generics)
 
 extension Conversion: @unchecked Sendable {}
 extension ReversibleConversion: @unchecked Sendable {}
 
-// MARK: - Result-builder accumulator (future-major-version cleanup)
+// MARK: - Result-builder accumulator (closure over un-Sendable-constrained generic)
 
 extension DataBuilder.Component: @unchecked Sendable {}

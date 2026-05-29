@@ -26,7 +26,10 @@ extension FormatBuilder where Root: Readable, Format == ReadFormat<Root> {
         buildExpression(
             ReadFormat { container, _ in
                 let verificationData = container.consumedData
-                try expression.verify(C.Value(from: &container), for: verificationData)
+                let value = try C.Value(from: &container)
+                if !container.environment.skipChecksumVerification {
+                    try expression.verify(value, for: verificationData)
+                }
             }
             .endianness(.big)
         )

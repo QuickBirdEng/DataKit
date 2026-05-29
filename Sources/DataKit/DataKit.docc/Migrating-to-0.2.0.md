@@ -48,20 +48,29 @@ The same applies to custom `FormatProperty` / `ReadableProperty` / `WritableProp
 implementations: these protocols now refine `Sendable`, and their `Root` must be
 `Sendable`.
 
-## Mark `Custom` and `Convert` closures `@Sendable`
+## Mark format-building closures `@Sendable`
 
 Closures passed to ``Custom`` and ``Convert`` (and the fluent ``Property`` helpers
-`read`, `write`, `converted`) are now `@Sendable`. In practice this means a closure may no
-longer capture non-`Sendable` mutable state. Most format closures are pure transforms and
-need no change:
+`read`, `write`, `converted`), to ``Using`` and ``Environment``, and to the
+`transformEnvironment` modifiers are now `@Sendable`. In practice this means a closure may
+no longer capture non-`Sendable` mutable state. Most format closures are pure transforms
+and need no change:
 
 ```swift
-// Still compiles — pure transform, no captured mutable state
+// Still compiles — pure transforms, no captured mutable state
 Convert(\.humidity) { Double($0) / 100 } writing: { UInt8($0 * 100) }
+Using(\.features) { features in
+    if features.contains(.hasTemperature) { Convert(\.temperature) { $0.cast(Float.self) } }
+}
 ```
 
 If a closure captures something non-`Sendable`, refactor so the captured value is either
 `Sendable` or passed through the container/environment instead of captured.
+
+Relatedly, the value passed to the `.environment(_:_:)` modifier must now be `Sendable`
+(all built-in environment values already are), and the debugging payloads on
+``UnexpectedValueError`` (`expectedValue`, `actualValue`) are now typed `any Sendable`
+rather than `Any`.
 
 ## Use `Checksum` types that are `Sendable`
 
@@ -106,5 +115,6 @@ side is unchanged: writing `nil` for an `Optional` field emits zero bytes.
 This is a bug fix rather than a migration step, but worth knowing: in 0.1.x the
 ``EnvironmentValues/skipChecksumVerification`` flag was read but never acted upon, so
 checksums were always verified. In 0.2.0 the flag correctly suppresses verification while
-still consuming the checksum bytes. If you relied on the old (broken) behavior of "set the
-flag but checksums verify anyway," remove the flag.
+still consuming the checksum bytes — for both the explicit ``ChecksumProperty`` and the
+bare-checksum form (`CRC32.default` inside a format block). If you relied on the old
+(broken) behavior of "set the flag but checksums verify anyway," remove the flag.

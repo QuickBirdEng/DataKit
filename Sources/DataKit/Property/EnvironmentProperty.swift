@@ -11,7 +11,7 @@ extension FormatProperty {
     /// ```swift
     /// \.bigEndianField.environment(\.endianness, .big)
     /// ```
-    public func environment<Value>(
+    public func environment<Value: Sendable>(
         _ keyPath: WritableKeyPath<EnvironmentValues, Value>,
         _ value: Value
     ) -> EnvironmentProperty<Self> {
@@ -21,14 +21,14 @@ extension FormatProperty {
     /// Mutates a single environment value via a closure for the duration of `self`'s read/write.
     public func transformEnvironment<Value>(
         _ keyPath: WritableKeyPath<EnvironmentValues, Value>,
-        transform: @escaping (inout Value) throws -> Void
+        transform: @escaping @Sendable (inout Value) throws -> Void
     ) -> EnvironmentProperty<Self> {
         EnvironmentProperty(self) { try transform(&$0[keyPath: keyPath]) }
     }
 
     /// Mutates the full environment via a closure for the duration of `self`'s read/write.
     public func transformEnvironment(
-        transform: @escaping (inout EnvironmentValues) throws -> Void
+        transform: @escaping @Sendable (inout EnvironmentValues) throws -> Void
     ) -> EnvironmentProperty<Self> {
         EnvironmentProperty(self) { try transform(&$0) }
     }
@@ -51,19 +51,21 @@ public struct EnvironmentProperty<Format: FormatProperty>: FormatProperty {
     // MARK: Stored Properties
 
     private let format: Format
-    private let transform: (inout EnvironmentValues) throws -> Void
+    private let transform: @Sendable (inout EnvironmentValues) throws -> Void
 
     // MARK: Initialization
 
     public init(
         _ format: Format,
-        transform: @escaping (inout EnvironmentValues) throws -> Void
+        transform: @escaping @Sendable (inout EnvironmentValues) throws -> Void
     ) {
         self.format = format
         self.transform = transform
     }
 
 }
+
+extension EnvironmentProperty: Sendable {}
 
 extension EnvironmentProperty: ReadableProperty where Format: ReadableProperty {
     public func read(from container: inout ReadContainer, context: inout ReadContext<Root>) throws {

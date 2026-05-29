@@ -28,7 +28,6 @@ public struct ChecksumProperty<ChecksumType: Checksum & Sendable, Format: Format
     // MARK: Nested Types
 
     public typealias Root = Format.Root
-    public typealias Value = ChecksumType.Value
 
     // MARK: Stored Properties
 
@@ -46,19 +45,9 @@ public struct ChecksumProperty<ChecksumType: Checksum & Sendable, Format: Format
         _ checksum: ChecksumType,
         at keyPath: KeyPath<Root, ChecksumType.Value>? = nil
     ) where Format == ReadFormat<Root>, ChecksumType.Value: Readable & Sendable {
-        self.format = ReadFormatBuilder.buildExpression(
-            ReadFormat { container, context in
-                let verificationData = container.consumedData
-                let value = try ChecksumType.Value(from: &container)
-                if !container.environment.skipChecksumVerification {
-                    try checksum.verify(value, for: verificationData)
-                }
-                if let keyPath {
-                    try context.write(value, for: keyPath)
-                }
-            }
-            .endianness(.big)
-        )
+        self.format = Self.makeReadFormat(checksum) { value, context in
+            if let keyPath { try context.write(value, for: keyPath) }
+        }
     }
 
     /// Reads and verifies a checksum, optionally exposing the decoded value at an
@@ -67,19 +56,9 @@ public struct ChecksumProperty<ChecksumType: Checksum & Sendable, Format: Format
         _ checksum: ChecksumType,
         at keyPath: KeyPath<Root, ChecksumType.Value?>? = nil
     ) where Format == ReadFormat<Root>, ChecksumType.Value: Readable & Sendable {
-        self.format = ReadFormatBuilder.buildExpression(
-            ReadFormat { container, context in
-                let verificationData = container.consumedData
-                let value = try ChecksumType.Value(from: &container)
-                if !container.environment.skipChecksumVerification {
-                    try checksum.verify(value, for: verificationData)
-                }
-                if let keyPath {
-                    try context.write(value, for: keyPath)
-                }
-            }
-            .endianness(.big)
-        )
+        self.format = Self.makeReadFormat(checksum) { value, context in
+            if let keyPath { try context.write(value, for: keyPath) }
+        }
     }
 
     /// Writes a checksum computed over the buffer so far, or — if `keyPath` is non-nil —
@@ -88,14 +67,9 @@ public struct ChecksumProperty<ChecksumType: Checksum & Sendable, Format: Format
         _ checksum: ChecksumType,
         at keyPath: KeyPath<Root, ChecksumType.Value>? = nil
     ) where Format == WriteFormat<Root>, ChecksumType.Value: Writable & Sendable {
-        self.format = WriteFormatBuilder.buildExpression(
-            WriteFormat { container, root in
-                let value = keyPath.map { root[keyPath: $0] }
-                    ?? checksum.calculate(for: container.data)
-                try value.write(to: &container)
-            }
-            .endianness(.big)
-        )
+        self.format = Self.makeWriteFormat(checksum) { root in
+            keyPath.map { root[keyPath: $0] }
+        }
     }
 
     /// Writes a checksum, sourcing the value from an optional-typed property on `Root`.
@@ -104,14 +78,9 @@ public struct ChecksumProperty<ChecksumType: Checksum & Sendable, Format: Format
         _ checksum: ChecksumType,
         at keyPath: KeyPath<Root, ChecksumType.Value?>? = nil
     ) where Format == WriteFormat<Root>, ChecksumType.Value: Writable & Sendable {
-        self.format = WriteFormatBuilder.buildExpression(
-            WriteFormat { container, root in
-                let value = keyPath.flatMap { root[keyPath: $0] }
-                    ?? checksum.calculate(for: container.data)
-                try value.write(to: &container)
-            }
-            .endianness(.big)
-        )
+        self.format = Self.makeWriteFormat(checksum) { root in
+            keyPath.flatMap { root[keyPath: $0] }
+        }
     }
 
     /// Unified read/write of a checksum for a ``ReadWritable`` root.
@@ -119,25 +88,13 @@ public struct ChecksumProperty<ChecksumType: Checksum & Sendable, Format: Format
         _ checksum: ChecksumType,
         at keyPath: KeyPath<Root, ChecksumType.Value>? = nil
     ) where Format == ReadWriteFormat<Root>, ChecksumType.Value: ReadWritable & Sendable {
-        self.format = ReadWriteFormatBuilder.buildExpression(
-            ReadWriteFormat(
-                read: .init { container, context in
-                    let verificationData = container.consumedData
-                    let value = try ChecksumType.Value(from: &container)
-                    if !container.environment.skipChecksumVerification {
-                        try checksum.verify(value, for: verificationData)
-                    }
-                    if let keyPath {
-                        try context.write(value, for: keyPath)
-                    }
-                },
-                write: .init { container, root in
-                    let value = keyPath.map { root[keyPath: $0] }
-                    ?? checksum.calculate(for: container.data)
-                    try value.write(to: &container)
-                }
-            )
-            .endianness(.big)
+        self.format = ReadWriteFormat(
+            read: Self.makeReadFormat(checksum) { value, context in
+                if let keyPath { try context.write(value, for: keyPath) }
+            },
+            write: Self.makeWriteFormat(checksum) { root in
+                keyPath.map { root[keyPath: $0] }
+            }
         )
     }
 
@@ -146,24 +103,52 @@ public struct ChecksumProperty<ChecksumType: Checksum & Sendable, Format: Format
         _ checksum: ChecksumType,
         at keyPath: KeyPath<Root, ChecksumType.Value?>? = nil
     ) where Format == ReadWriteFormat<Root>, ChecksumType.Value: ReadWritable & Sendable {
-        self.format = ReadWriteFormatBuilder.buildExpression(
-            ReadWriteFormat(
-                read: .init { container, context in
-                    let verificationData = container.consumedData
-                    let value = try ChecksumType.Value(from: &container)
-                    if !container.environment.skipChecksumVerification {
-                        try checksum.verify(value, for: verificationData)
-                    }
-                    if let keyPath {
-                        try context.write(value, for: keyPath)
-                    }
-                },
-                write: .init { container, root in
-                    let value = keyPath.flatMap { root[keyPath: $0] }
-                        ?? checksum.calculate(for: container.data)
-                    try value.write(to: &container)
+        self.format = ReadWriteFormat(
+            read: Self.makeReadFormat(checksum) { value, context in
+                if let keyPath { try context.write(value, for: keyPath) }
+            },
+            write: Self.makeWriteFormat(checksum) { root in
+                keyPath.flatMap { root[keyPath: $0] }
+            }
+        )
+    }
+
+    // MARK: Format Construction
+
+    /// Builds the read side: reads the checksum bytes (big-endian), verifies them against the
+    /// bytes consumed so far unless ``EnvironmentValues/skipChecksumVerification`` is set, then
+    /// hands the decoded value to `store` (which decides whether to expose it at a key path).
+    ///
+    /// This is the single verification site shared by every read-capable initializer, so the
+    /// `skipChecksumVerification` semantics cannot drift between them.
+    private static func makeReadFormat<Root: Readable>(
+        _ checksum: ChecksumType,
+        store: @escaping @Sendable (ChecksumType.Value, inout ReadContext<Root>) throws -> Void
+    ) -> ReadFormat<Root> where ChecksumType.Value: Readable & Sendable {
+        ReadFormatBuilder.buildExpression(
+            ReadFormat { container, context in
+                let verificationData = container.consumedData
+                let value = try ChecksumType.Value(from: &container)
+                if !container.environment.skipChecksumVerification {
+                    try checksum.verify(value, for: verificationData)
                 }
-            )
+                try store(value, &context)
+            }
+            .endianness(.big)
+        )
+    }
+
+    /// Builds the write side: writes the value produced by `source` (big-endian), falling back
+    /// to a checksum computed over the buffer accumulated so far when `source` returns `nil`.
+    private static func makeWriteFormat<Root: Writable>(
+        _ checksum: ChecksumType,
+        source: @escaping @Sendable (Root) -> ChecksumType.Value?
+    ) -> WriteFormat<Root> where ChecksumType.Value: Writable & Sendable {
+        WriteFormatBuilder.buildExpression(
+            WriteFormat { container, root in
+                let value = source(root) ?? checksum.calculate(for: container.data)
+                try value.write(to: &container)
+            }
             .endianness(.big)
         )
     }
