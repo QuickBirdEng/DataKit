@@ -1,36 +1,47 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 25.06.23.
-//
+// EnvironmentProperty.swift
 
 import Foundation
 
 extension FormatProperty {
 
-    public func environment<Value>(
+    /// Sets a single environment value for the duration of `self`'s read/write.
+    ///
+    /// The previous value is restored once the wrapped format completes.
+    ///
+    /// ```swift
+    /// \.bigEndianField.environment(\.endianness, .big)
+    /// ```
+    public func environment<Value: Sendable>(
         _ keyPath: WritableKeyPath<EnvironmentValues, Value>,
         _ value: Value
     ) -> EnvironmentProperty<Self> {
         EnvironmentProperty(self) { $0[keyPath: keyPath] = value }
     }
 
+    /// Mutates a single environment value via a closure for the duration of `self`'s read/write.
     public func transformEnvironment<Value>(
         _ keyPath: WritableKeyPath<EnvironmentValues, Value>,
-        transform: @escaping (inout Value) throws -> Void
+        transform: @escaping @Sendable (inout Value) throws -> Void
     ) -> EnvironmentProperty<Self> {
         EnvironmentProperty(self) { try transform(&$0[keyPath: keyPath]) }
     }
 
+    /// Mutates the full environment via a closure for the duration of `self`'s read/write.
     public func transformEnvironment(
-        transform: @escaping (inout EnvironmentValues) throws -> Void
+        transform: @escaping @Sendable (inout EnvironmentValues) throws -> Void
     ) -> EnvironmentProperty<Self> {
         EnvironmentProperty(self) { try transform(&$0) }
     }
 
 }
 
+/// Scopes a transient environment change to a single format subtree.
+///
+/// Created indirectly via ``FormatProperty/environment(_:_:)``,
+/// ``FormatProperty/transformEnvironment(_:transform:)``, or
+/// ``FormatProperty/transformEnvironment(transform:)``. The `transform` closure runs before
+/// the wrapped format and the previous environment is restored afterwards, giving SwiftUI-
+/// style scoped propagation.
 public struct EnvironmentProperty<Format: FormatProperty>: FormatProperty {
 
     // MARK: Nested Types
@@ -40,19 +51,21 @@ public struct EnvironmentProperty<Format: FormatProperty>: FormatProperty {
     // MARK: Stored Properties
 
     private let format: Format
-    private let transform: (inout EnvironmentValues) throws -> Void
+    private let transform: @Sendable (inout EnvironmentValues) throws -> Void
 
     // MARK: Initialization
 
     public init(
         _ format: Format,
-        transform: @escaping (inout EnvironmentValues) throws -> Void
+        transform: @escaping @Sendable (inout EnvironmentValues) throws -> Void
     ) {
         self.format = format
         self.transform = transform
     }
 
 }
+
+extension EnvironmentProperty: Sendable {}
 
 extension EnvironmentProperty: ReadableProperty where Format: ReadableProperty {
     public func read(from container: inout ReadContainer, context: inout ReadContext<Root>) throws {

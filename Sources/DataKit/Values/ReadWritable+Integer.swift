@@ -1,11 +1,13 @@
-//
-//  File.swift
-//
-//
-//  Created by Paul Kraft on 16.07.23.
-//
+// ReadWritable+Integer.swift
 
 import Foundation
+
+// All standard-library fixed-width integer types are `ReadWritable` out of the box.
+//
+// The on-wire size of an integer is `MemoryLayout<Self>.size`. The byte order is taken
+// from `EnvironmentValues.endianness`; when that is `nil` (the default), host-native byte
+// order is used — which is portable across same-endian machines only, and is rarely what a
+// cross-platform wire protocol wants.
 
 extension Int: ReadWritable {}
 extension Int8: ReadWritable {}
@@ -19,7 +21,7 @@ extension UInt16: ReadWritable {}
 extension UInt32: ReadWritable {}
 extension UInt64: ReadWritable {}
 
-extension FixedWidthInteger where Self: ReadWritable {
+extension FixedWidthInteger where Self: ReadWritable & Sendable {
 
     public init(from context: ReadContext<Self>) throws {
         self = try context.read(for: \.self)
@@ -69,5 +71,3 @@ extension FixedWidthInteger where Self: ReadWritable {
     }
 
 }
-
-

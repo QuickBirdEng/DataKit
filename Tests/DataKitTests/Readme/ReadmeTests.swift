@@ -50,6 +50,15 @@ final class ReadmeTests: XCTestCase {
             XCTAssertThrowsError(try WeatherStationUpdate(wrongChecksumData)) { error in
                 XCTAssert(error is VerificationError<UInt32>)
             }
+
+            // `skipChecksumVerification` must bypass verification even for the bare
+            // `CRC32.default` form used by `WeatherStationUpdate.format`.
+            XCTAssertNoThrow {
+                let readValue = try WeatherStationUpdate(wrongChecksumData) {
+                    $0.skipChecksumVerification = true
+                }
+                XCTAssertEqual(readValue, expectedValue)
+            }
         }
     }
 

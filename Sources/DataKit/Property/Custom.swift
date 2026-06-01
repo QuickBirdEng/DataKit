@@ -1,12 +1,22 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 27.07.23.
-//
+// Custom.swift
 
 import Foundation
 
+/// Drops down to raw `ReadContainer`/`WriteContainer` access for a single field.
+///
+/// `Custom` is the escape hatch for fields that cannot be expressed with the existing
+/// primitives or with a ``Convert`` + ``Conversion``.
+///
+/// - Important: The `read` closure is `(inout ReadContainer) -> Value` — it is *not*
+///   throwing, so it cannot surface errors. Any failure inside it must be resolved locally:
+///   `try!` traps the process and `try?` discards the error as `nil`; neither propagates out
+///   of the format walk. If your read logic genuinely needs to fail (e.g. malformed input),
+///   express it as a ``Conversion``/``ReversibleConversion`` whose throwing read is honored,
+///   rather than as a read-only `Custom`. The `write` closure, by contrast, *is* `throws` and
+///   propagates errors normally.
+///
+/// If the same custom read/write logic appears more than once in your codebase, lift it
+/// into a reusable ``Conversion`` or ``ReversibleConversion`` instead.
 public struct Custom<Format: FormatType>: FormatProperty {
 
     // MARK: Nested Types
@@ -19,28 +29,31 @@ public struct Custom<Format: FormatType>: FormatProperty {
 
     // MARK: Initialization
 
-    public init<Root, Value>(
+    /// Read-only custom logic.
+    public init<Root, Value: Sendable>(
         _ keyPath: KeyPath<Root, Value>,
-        read: @escaping (inout ReadContainer) -> Value
+        read: @escaping @Sendable (inout ReadContainer) -> Value
     ) where Root: Readable, Format == ReadFormat<Root> {
         self.format = ReadFormat { container, context in
             try context.write(read(&container), for: keyPath)
         }
     }
 
-    public init<Root, Value>(
+    /// Write-only custom logic.
+    public init<Root, Value: Sendable>(
         _ keyPath: KeyPath<Root, Value>,
-        write: @escaping (inout WriteContainer, Value) throws -> Void
+        write: @escaping @Sendable (inout WriteContainer, Value) throws -> Void
     ) where Root: Writable, Format == WriteFormat<Root> {
         self.format = WriteFormat { container, root in
             try write(&container, root[keyPath: keyPath])
         }
     }
 
-    public init<Root, Value>(
+    /// Paired custom read and write for a ``ReadWritable`` root.
+    public init<Root, Value: Sendable>(
         _ keyPath: KeyPath<Root, Value>,
-        read: @escaping (inout ReadContainer) -> Value,
-        write: @escaping (inout WriteContainer, Value) throws -> Void
+        read: @escaping @Sendable (inout ReadContainer) -> Value,
+        write: @escaping @Sendable (inout WriteContainer, Value) throws -> Void
     ) where Root: ReadWritable, Format == ReadWriteFormat<Root> {
         self.format = ReadWriteFormat(
             read: Custom<ReadFormat>(keyPath, read: read).format,
@@ -61,3 +74,5 @@ extension Custom: WritableProperty where Format: WritableProperty {
         try format.write(to: &container, using: root)
     }
 }
+
+extension Custom: Sendable where Format: Sendable {}

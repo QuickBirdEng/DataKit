@@ -1,14 +1,12 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 16.07.23.
-//
+// Conversion+VariableCount.swift
 
 import Foundation
 
-extension Conversion where Target: Sequence {
+extension Conversion where Target: Sequence & Sendable, Target.Element: Sendable {
 
+    /// Wraps the sequence target into a ``DynamicCountArray`` — a variable-length list whose
+    /// boundary is determined by either ``EnvironmentValues/suffix`` or the surrounding
+    /// container's bounds, rather than by an explicit length prefix.
     public var dynamicCount: Appended<DynamicCountArray<Target.Element>> {
         appending { .init($0) }
     }
@@ -17,7 +15,8 @@ extension Conversion where Target: Sequence {
 
 extension Conversion {
 
-    public func dynamicCount<NewTarget: RangeReplaceableCollection>(
+    /// Unwraps a ``DynamicCountArray`` back into a `RangeReplaceableCollection`.
+    public func dynamicCount<NewTarget: RangeReplaceableCollection & Sendable>(
         _ target: NewTarget.Type = NewTarget.self
     ) -> Appended<NewTarget> where Target == DynamicCountArray<NewTarget.Element> {
         appending { NewTarget($0.values) }
@@ -25,8 +24,9 @@ extension Conversion {
 
 }
 
-extension ReversibleConversion where Target: RangeReplaceableCollection {
+extension ReversibleConversion where Target: RangeReplaceableCollection & Sendable, Target.Element: Sendable {
 
+    /// Reversible wrap/unwrap of a `RangeReplaceableCollection` into a ``DynamicCountArray``.
     public var dynamicCount: Appended<DynamicCountArray<Target.Element>> {
         appending {
             $0.dynamicCount
@@ -37,10 +37,23 @@ extension ReversibleConversion where Target: RangeReplaceableCollection {
 
 }
 
+/// A variable-length array whose extent is determined at runtime rather than by a length
+/// prefix.
+///
+/// Reading behavior depends on the active ``EnvironmentValues/suffix`` value:
+///
+/// - If `suffix` is `nil`, elements are read until the container is exhausted.
+/// - If `suffix.isRequired == true`, elements are read until the upcoming bytes match the
+///   terminator, which is then consumed. If the stream ends before the terminator is found,
+///   the inner element read raises ``ReadContainer/LengthExceededError``.
+/// - If `suffix.isRequired == false`, reading also stops at EOF.
+///
+/// On write, the terminator (if any) is appended after the elements.
 public struct DynamicCountArray<Element> {
 
     // MARK: Stored Properties
 
+    /// The underlying elements.
     public let values: [Element]
 
     // MARK: Initialization
@@ -102,3 +115,5 @@ extension DynamicCountArray: ReadWritable where Element: ReadWritable {
     }
 
 }
+
+extension DynamicCountArray: Sendable where Element: Sendable {}

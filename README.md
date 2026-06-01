@@ -1,189 +1,118 @@
+![DataKit](https://github.com/QuickBirdEng/DataKit/assets/15239005/2b8fc619-2c29-4900-984b-9187ae7a5b57)
 
-![‎DataKit](https://github.com/QuickBirdEng/DataKit/assets/15239005/2b8fc619-2c29-4900-984b-9187ae7a5b57)
+**A declarative DSL for binary protocols in Swift.**
 
-DataKit offers a modern, intuitive and declarative interface for reading and writing binary formatted data in Swift. 
+- Round-trip reads ↔ writes from a single format declaration.
+- Built on Swift result builders — feels like SwiftUI, but produces bytes.
+- Handles real-world wire-protocol concerns: endianness, bit-packed flags, length prefixes, dynamic suffixes, and CRC checksums.
 
-## 🏃‍♂️Getting started
+[![Swift Package Manager](https://img.shields.io/badge/SwiftPM-compatible-brightgreen.svg)](https://swift.org/package-manager)
+[![Swift](https://img.shields.io/badge/Swift-5.10%2B-orange.svg)](https://swift.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Documentation](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FQuickBirdEng%2FDataKit%2Fbadge%3Ftype%3Ddocs)](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation)
 
-As an introduction into how this library can be used to make working with binary formatted data easier, let me first introduce you to the type, we are going to read/write. Let's assume we are building a weather station and we are using the following type(s) to give updates about the currently measured values:
+---
+
+## Contents
+
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Real-world example: weather-station packet](#real-world-example-weather-station-packet)
+- [Concepts](#concepts)
+- [Built-in conformances](#built-in-conformances)
+- [Requirements](#requirements)
+- [Architecture](#architecture)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Installation
+
+Add DataKit to your `Package.swift`:
 
 ```swift
+dependencies: [
+    .package(url: "https://github.com/QuickBirdEng/DataKit.git", from: "0.2.0"),
+],
+```
+
+…and add `"DataKit"` to the dependencies list of any target that uses it. Xcode users can
+also add the package via *File → Add Package Dependencies…*.
+
+## Quick start
+
+```swift
+import DataKit
+
+struct Header: ReadWritable {
+    var magic: UInt16
+    var count: UInt8
+
+    init(from context: ReadContext<Header>) throws {
+        magic = try context.read(for: \.magic)
+        count = try context.read(for: \.count)
+    }
+
+    static var format: Format {
+        \.magic
+        \.count
+    }
+}
+
+let header = try Header(data)            // decode
+let bytes  = try header.write()          // encode
+```
+
+That's everything: one `format` declaration drives both directions. Key paths in
+`format` and `init(from:)` must match — see the [reading footgun](#heads-up-keypath-mismatch-is-a-runtime-error)
+below.
+
+## Real-world example: weather-station packet
+
+A more realistic example exercises feature flags, conditional fields, conversion, and a
+CRC trailer. Here is the on-the-wire layout we will model:
+
+- Frame prefix: one byte `0x02`.
+- One feature-flags byte:
+  - bit 0: temperature is present
+  - bit 1: humidity is present
+  - bit 2: temperature is in °C (otherwise °F)
+- If present: temperature as a big-endian 32-bit float.
+- If present: humidity as a `UInt8` in the range `[0, 100]`, exposed as a `Double` in
+  `[0, 1]`.
+- A CRC-32 over the entire frame.
+
+```swift
+import DataKit
+
 struct WeatherStationFeatures: OptionSet, ReadWritable {
     var rawValue: UInt8
 
     static var hasTemperature = Self(rawValue: 1 << 0)
-    static var hasHumidity = Self(rawValue: 1 << 1)
+    static var hasHumidity    = Self(rawValue: 1 << 1)
     static var usesMetricUnits = Self(rawValue: 1 << 2)
 }
 
-struct WeatherStationUpdate {
-
+struct WeatherStationUpdate: ReadWritable {
     var features: WeatherStationFeatures
     var temperature: Measurement<UnitTemperature>
     var humidity: Double
 
-}
-```
-
-The encoded format should be:
-- Each message starts with a byte with the value 0x02.
-- The following byte contains multiple feature flags:
-    - bit 0 is set: Using °C instead of °F for the temperature
-    - bit 1 is set: The message contains temperature information
-    - bit 2 is set: The message contains humidity information
-- Temperature as a big-endian 32-bit floating-point number
-- Relative Humidity as UInt8 in the range of [0, 100]
-- CRC-32 with the default polynomial for the whole message (incl. 0x02 prefix).
-
-### Writing data
-
-You have two options for converting the above type `WeatherStationUpdate` into data: A `DataBuilder` or the `Writable` protocol. If you intend to both read and write the data - make sure to read the `Reading & Writing data` section
-
-#### DataBuilder
-
-A `DataBuilder` provides you with a very simple and limited interface. Using the power of result builders, you can simply state the values to be written in a given order and `DataBuilder` will take over all the work to encode the values and append the individual bytes to form a `Data` object. `DataBuilder` is always expected to return a `Data` object without throwing errors, which is why conversion are not supported here - You might want to have a look at the `Writable` protocol then!
-
-```swift
-extension WeatherStationUpdate {
-
-    @DataBuilder var data: Data {
-        UInt8(0x02)
-        features
-        if features.contains(.hasTemperature) {
-            Float(temperature.converted(to: features.contains(.usesMetricUnits) ? .celsius : .fahrenheit).value)
-        }
-        if features.contains(.hasHumidity) {
-            UInt8(humidity * 100)
-        }
-        CRC32.default
-    }
-
-}
-```
-
-With this addition, you can easily get the data of this object using its `data` property.
-
-#### Writable
-
-With the power of keyPaths and result builders, you can also write your objects into `Data` using the `Writable` protocol and its `writeFormat` property. Simply state out individual fixed values (e.g. byte prefixes), keyPaths with `Writable` values or other constructs that are further explained in the `Extras` section of this document.
-
-```swift
-extension WeatherStationUpdate: Writable {
-
-    static var writeFormat: WriteFormat {
-        Scope {
-            UInt8(0x02)
-
-            \.features
-
-            Using(\.features) { features in
-                if features.contains(.hasTemperature) {
-                    let unit: UnitTemperature =
-                    features.contains(.usesMetricUnits) ? .celsius : .fahrenheit
-                    Convert(\.temperature) {
-                        $0.converted(to: unit).cast(Float.self)
-                    }
-                }
-                if features.contains(.hasHumidity) {
-                    Convert(\.humidity) {
-                        Double($0) / 100
-                    } writing: {
-                        UInt8($0 * 100)
-                    }
-                }
-            }
-
-            CRC32.default
-        }
-        .endianness(.big)
-    }
-
-}
-``` 
-
-By conforming to the `Writable` protocol, you are now able to simply call its `write` function to write its data out:
-
-```swift
-let message: WeatherStationUpdate = ...
-let messageData = try message.write() // You can also inject a custom environment here, if needed
-```
-
-### Reading data
-
-Supporting reading of data into objects is slightly more complicated. Conforming to the `Readable` protocol will require you to implement both an initializer to create an object from a given `ReadContext` and a static `readFormat` property describing how data is aligned.
-
-A `ReadContext` provides you with the values that have been read using the `readFormat`. Make sure to use the same keyPaths in the initializer and `readFormat` to ensure smooth reading of values.
-
-```swift
-extension WeatherStationUpdate: Readable {
-
-    init(from context: ReadContext<WeatherStationUpdate>) throws {
+    init(from context: ReadContext<Self>) throws {
         features = try context.read(for: \.features)
-        temperature = try context.readIfPresent(for: \.temperature) ?? .init(value: .nan, unit: .kelvin)
+        temperature = try context.readIfPresent(for: \.temperature)
+            ?? .init(value: .nan, unit: .kelvin)
         humidity = try context.readIfPresent(for: \.humidity) ?? .nan
     }
 
-    static var readFormat: ReadFormat {
-        Scope {
-            UInt8(0x02)
-
-            \.features
-
-            Using(\.features) { features in
-                if features.contains(.hasTemperature) {
-                    let unit: UnitTemperature =
-                    features.contains(.usesMetricUnits) ? .celsius : .fahrenheit
-                    Convert(\.temperature) {
-                        $0.converted(to: unit).cast(Float.self)
-                    }
-                }
-                if features.contains(.hasHumidity) {
-                    Convert(\.humidity) {
-                        Double($0) / 100
-                    } writing: {
-                        UInt8($0 * 100)
-                    }
-                }
-            }
-
-            CRC32.default
-        }
-        .endianness(.big)
-    }
-
-}
-``` 
-
-By implementing all these requirements of the `Readable` protocol, you now gain another initializer `init(_: Data) throws` to read objects from `Data` objects:
-
-```swift
-let data: Data = ...
-let message = try WeatherStationUpdate(data) // You can also inject a custom environment here, if needed
-```
-
-### Reading & Writing data
-
-To make a type both `Readable` and `Writable`, you can conform your type to the `ReadWritable` protocol. Instead of providing a separate format for reading and writing, you can define a `Format` property that is used for both reading and writing. For our example type, we can simply merge the two formats into one and provide the initializer for creating an object from a given `ReadContext`.
-
-```swift
-extension WeatherStationUpdate: ReadWritable {
-
-    init(from context: ReadContext<WeatherStationUpdate>) throws {
-        features = try context.read(for: \.features)
-        temperature = try context.readIfPresent(for: \.temperature) ?? .init(value: .nan, unit: .kelvin)
-        humidity = try context.readIfPresent(for: \.humidity) ?? .nan
-    }
-    
     static var format: Format {
         Scope {
-            UInt8(0x02)
-
+            UInt8(0x02)                      // asserted on read, emitted on write
             \.features
 
             Using(\.features) { features in
                 if features.contains(.hasTemperature) {
                     let unit: UnitTemperature =
-                    features.contains(.usesMetricUnits) ? .celsius : .fahrenheit
+                        features.contains(.usesMetricUnits) ? .celsius : .fahrenheit
                     Convert(\.temperature) {
                         $0.converted(to: unit).cast(Float.self)
                     }
@@ -197,134 +126,246 @@ extension WeatherStationUpdate: ReadWritable {
                 }
             }
 
-            CRC32.default
+            CRC32.default                    // covers exactly the Scope's bytes
         }
         .endianness(.big)
     }
-
 }
+
+let packet: WeatherStationUpdate = ...
+let bytes = try packet.write()
+let decoded = try WeatherStationUpdate(bytes)
 ```
 
-Hooray, you can now read and write your objects! 🎉
+> If you only need one direction, conform to ``Readable`` or ``Writable`` and replace
+> `format` with `readFormat` (plus the `init(from:)`) or `writeFormat`.
 
-## 🤸‍♂️ Extras
+### Heads-up: keypath mismatch is a runtime error
 
-Reading/Writing data is often quite complicated and different format pose different challenges to minimize payloads, reduce bandwidth, improve performance, etc. To make it easy to handle different common scenarios, `DataKit` provides a couple of extra features to handle the most common challenges.
+The format walk stores each parsed value into a `ReadContext` keyed by a `KeyPath<Self,
+Value>`. Your `init(from:)` retrieves it by the same key path. A mismatch (typo, renamed
+field, or stale code) surfaces as `ReadContext.ValueDoesNotExistError` *at runtime* — the
+compiler cannot catch it. Add a round-trip test for every `ReadWritable` to flush these
+out early.
 
-### ✏️ Convert / Custom / Property
+## Concepts
 
-In some special cases, you might need more control over how data is read/written. For these cases, the wrappers `Custom`, `Convert` and `Property` might be of interest.
+| Concept | When to reach for it | Source |
+|---|---|---|
+| [`Property`](#property) | Help the compiler with a key path it cannot infer; entry-point for fluent operators. | [`Property.swift`](Sources/DataKit/Property/Property.swift) |
+| [`Convert`](#convert) | Encode a field as a different on-wire type than the in-memory type. | [`Convert.swift`](Sources/DataKit/Property/Convert.swift) |
+| [`Custom`](#custom) | Drop into raw `ReadContainer` / `WriteContainer` access. | [`Custom.swift`](Sources/DataKit/Property/Custom.swift) |
+| [`Using`](#using) | Branch on a value already in the context (e.g. feature flags, length prefixes). | [`Using.swift`](Sources/DataKit/Property/Using.swift) |
+| [`Scope`](#scope) | Restrict checksum coverage / sub-buffer reads to a sub-range. | [`Scope.swift`](Sources/DataKit/Property/Scope.swift) |
+| [`Environment`](#environment) | Read ambient state (endianness, suffix terminator, etc.) during the walk. | [`Environment/`](Sources/DataKit/Environment/) |
+| [`Conversion` / `ReversibleConversion`](#conversion--reversibleconversion) | Reusable bidirectional encoders (UTF-8, prefix-count, etc.). | [`Conversions/`](Sources/DataKit/Conversions/) |
+| [`ChecksumProperty`](#checksums) | CRC and custom checksum fields via [crc-swift](https://github.com/QuickBirdEng/crc-swift). | [`Checksum.swift`](Sources/DataKit/Property/Checksum.swift) |
 
-- `Property` makes it easy to wrap a keyPath, if the Root type may not be recognized by the compiler. You can further use functions on it to map a `Property` to either a `Custom` or `Convert` wrapper.
-- `Convert` allows you to convert a keyPath's value before reading/writing it. Oftentimes, this is very usefuly for sequence values with variable size. You can either provide custom conversion methods directly or use a pre-existing `Conversion`/`ReversibleConversion` value.
-- `Custom` allows you to access the raw reading/writing functionality with direct access to the `ReadContainer`/`WriteContainer` and respective context values. If you need the read/write behavior more than once in your codebase, you might want to have a look at conversions though.
+### Property
 
-### 💱 Conversion / ReversibleConversion
+`Property` wraps a key path so the compiler can resolve the root type, and is the
+entry-point for the fluent `.conversion { ... }` / `.read(...)` / `.write(...)` modifiers
+that ultimately build a `Convert` or `Custom`.
 
-For some types, there is not a single "correct" format (e.g. thinking about Pascal vs C strings), which is why `DataKit` uses so called `Conversion` values to allow for conversion to be defined once and then used multiple times. Especially helpful is the `ReversibleConversion` type that allows for conversion to be provided in both directions at the same time.
-
-Assuming our type has a `\.string` keyPath with a `String` value, you could either use a suffix 0-byte to encode the string using UTF8 (similar to C strings):
 ```swift
-Convert(\.string) { // UTF8 string with a suffix 0-byte
+Property(\.id)
+Property(\.payload).conversion { $0.exactly(UInt16.self) }
+```
+
+A bare key path (e.g. `\.id`) inside a builder is equivalent to `Property(\.id)`.
+
+### Convert
+
+`Convert` is the bridge between a model's Swift type and the wire's bytes. Three forms:
+a `Conversion` builder, paired raw closures, or — for `ReadWritable` — a
+`ReversibleConversion`.
+
+```swift
+Convert(\.string) {                       // C string: UTF-8, 0-terminated
     $0.encoded(.utf8).dynamicCount
 }
 .suffix(0 as UInt8)
-```
 
-Or you encode the string with a prefix byte containing the byte count (similar to Pascal ShortString):
-```swift
-Convert(\.string) { // Ascii string with a prefix count byte
+Convert(\.length) {                       // Pascal short string
     $0.encoded(.ascii).prefixCount(UInt8.self)
+}
+
+Convert(\.humidity) {                     // Double <-> wire UInt8 (0...100)
+    Double($0) / 100
+} writing: {
+    UInt8($0 * 100)
 }
 ```
 
-There are many more conversion available, e.g. for converting between integer/floating-point types, making it easy to convert directly to your preferred types without the need of converting yourself.
+### Custom
 
-### 🤓 Using
+`Custom` is the escape hatch for fields that no other primitive expresses. If the same
+custom logic appears more than once, lift it into a reusable `Conversion`.
 
-With a `Using` construct, you can access values from the `ReadContext` or the value to be written. `Using` can be very helpful, if values in the data itself depend on each other or how individual values need to be read or written.
+```swift
+Custom(\.timestamp) { container in
+    // The read closure is non-throwing, so it cannot surface errors. `try!` is acceptable
+    // here only because a fixed 4-byte field is present by construction; for input that may
+    // be truncated or malformed, model the field as a `Conversion` instead.
+    let raw = try! UInt32(from: &container)
+    return Date(timeIntervalSince1970: TimeInterval(raw))
+} write: { container, date in
+    // The write closure *is* throwing, so errors propagate normally.
+    try UInt32(date.timeIntervalSince1970).write(to: &container)
+}
+```
+
+### Using
+
+`Using` runs a sub-format that depends on a value already in the context (or already on
+the root, during a write). The workhorse for feature-flag and length-prefixed layouts.
+
+```swift
+\.count                       // parse a count byte first
+Using(\.count) { count in
+    for index in 0..<count {
+        \.items[index]
+    }
+}
+```
+
+### Scope
+
+`Scope` restricts the "current data view" so that checksums and similar primitives
+operate on the right region. `endInset` reserves trailing bytes for a value that follows
+the scope (typically the checksum itself).
+
+```swift
+Scope(endInset: 4) {          // reserve 4 trailing bytes for the CRC
+    \.header
+    \.payload
+}
+CRC32.default                 // computed over the scope's bytes only
+```
 
 ### Environment
 
-Similar to SwiftUI's environment, you can also modify the behavior of individual components in `DataKit` using the `Environment`.
-You can modify the environment when starting the reading/writing process or using modifiers inside the readFormat/writeFormat/format-properties.
-To access environment values, you may want to have a look at the `Environment` type to be used in one of the format builders - or for more direct access both `ReadContainer` and `WriteContainer` have a `environment` property.
+Like SwiftUI's `@Environment`, but for binary formats. The format walk reads ambient
+state from `EnvironmentValues` and modifiers like `.endianness(.big)` /
+`.suffix(0 as UInt8)` / `.skipChecksumVerification()` scope changes to a subtree.
 
-Here are some modifiers, you might want to use:
+Built-in keys:
 
-- `endianness`: By default, `DataKit` reads & writes values in the endianness of the current machine (except for CRCs, where big-endian is used). If your protocol requires a different endianness, make sure to specify a concrete one.
-- `skipChecksumVerification`: If you want to have a CRC to be created when writing out data, but ignore an incorrect checksum value when reading, you can set this property to `true` - by default `false` is used. Read the `Checksums` section for more information.
-- `suffix`: For values with dynamic count (e.g. a sequence of values with a 0-suffix-byte), you can specify a `.dynamicCount` conversion on a given property. The specified value will stop the reading process of a given value and the value will be written out after the given sequence's end is encountered.
+- `endianness` — default is `nil` (host-native). **Set this explicitly** for any wire
+  protocol that must be portable.
+- `suffix` — terminator bytes for variable-length sequences.
+- `skipChecksumVerification` — read but do not validate.
 
-Feel free to add your own environment values using the `EnvironnentKey` protocol and an extension to the `EnvironmentValues` struct (very similar to SwiftUI).
+Define your own keys by conforming to `EnvironmentKey` and extending `EnvironmentValues`,
+the same way you would for SwiftUI.
 
-### 🚧 Scope 
+### Conversion / ReversibleConversion
 
-Some constructs (e.g. CRC checksums) make assumptions about the data as a whole and not only the part where the specific value is read/written. By using `Scope`, you can limit that data context to where it is individually placed. 
-
-As an example, let's assume our `WeatherStationUpdate` is supposed to ignore the prefix `0x02` byte for the checksum calculation. We could simply exclude it from the scope:
+Reusable composable transforms used inside `Convert` and `Property.conversion(...)`.
+`ReversibleConversion` bundles a forward and reverse direction for round-trippable types.
 
 ```swift
-static var format: Format {
-    UInt8(0x02)
-    
-    Scope {
-        \.features
+// Two takes on a length-prefixed UTF-8 string:
 
-        Using(\.features) { features in
-            if features.contains(.hasTemperature) {
-                let unit: UnitTemperature =
-                    features.contains(.usesMetricUnits) ? .celsius : .fahrenheit
-                Convert(\.temperature) {
-                    $0.converted(to: unit).cast(Float.self)
-                }
-            }
-            if features.contains(.hasHumidity) {
-                Convert(\.humidity) {
-                    Double($0) / 100
-                } writing: {
-                    UInt8($0 * 100)
-                }
-            }
-        }
+Convert(\.string) { $0.encoded(.utf8).prefixCount(UInt8.self) }   // 1-byte length prefix
+Convert(\.string) { $0.encoded(.utf8).dynamicCount }              // read to terminator
+    .suffix(0 as UInt8)
+```
 
-        CRC32.default
-    }
-    .endianness(.big)
+Other ready-to-use conversions: `.cast`, `.clamped`, `.exactly`, `.converted(to: UnitTemperature.celsius)`,
+`.map`, `.at(keyPath)` — see [`Conversions/`](Sources/DataKit/Conversions/) for the full list.
+
+### Checksums
+
+Bare `Checksum` values (e.g. `CRC32.default`) inside a format builder read/verify on
+decode and compute/append on encode — always in big-endian. The input range is the
+container's `consumedData`; pair with `Scope` to control what's covered.
+
+```swift
+Scope {
+    \.payload
+    CRC32.default      // covers exactly the scoped bytes
 }
 ```
 
-With this change in place, the CRC will only be verified on the Scope itself and the prefix byte is ignored!
+For checksums whose value lives on the model itself, use `ChecksumProperty` with a
+keyPath. Combine with `skipChecksumVerification` when reading captures that may be
+corrupted.
 
-### ✅ Checksums
+## Built-in conformances
 
-`DataKit`'s dependency [`crc-swift`](https://github.com/QuickBirdEng/crc-swift.org) provides CRC checksums and and easy-to-conform protocol for your own custom checksum values.
+These are `ReadWritable` out of the box:
 
-You may simply specify the checksum value itself inside one of the format builders. Alternatively, use a `ChecksumProperty` with a keyPath, so that you can store checksums in properties and write custom checksums from properties. In combination to the `skipChecksumVerification` environment value, you can also verify the checksum at a later stage for example.
+- All standard-library fixed-width integers (`Int`, `Int8`…`Int64`, `UInt`, `UInt8`…`UInt64`).
+- `Float16` (arm64-only), `Float32`, `Float64`.
+- `RawRepresentable` types whose `RawValue` is itself `ReadWritable` (the common case
+  for integer-backed enums).
+- `Optional<Wrapped>` where `Wrapped` is `ReadWritable`. **Note:** reading always
+  produces `.some`; the `Optional` typing matters on the write side and for
+  `ReadContext.readIfPresent(for:)`. To make presence truly optional on read, gate the
+  read with `Using` and a flag.
 
-## 🛠 Installation
+All numeric encodings respect `EnvironmentValues.endianness`. The host-native default is
+a footgun for cross-platform formats — set endianness explicitly at the top of your
+format.
 
-`DataKit` currently only supports Swift package manager.
+## Requirements
 
-#### Swift Package Manager
+- Swift 5.10+
+- iOS 13+, macOS 10.15+, tvOS 13+, watchOS 6+, Linux (Swift 5.10+)
+- Single dependency: [crc-swift](https://github.com/QuickBirdEng/crc-swift) (re-exported
+  as `CRC`)
 
-See [this WWDC presentation](https://developer.apple.com/videos/play/wwdc2019/408/) about more information how to adopt Swift packages in your app.
+Documentation is hosted at [Swift Package Index](https://swiftpackageindex.com/QuickBirdEng/DataKit/documentation).
 
-Specify `https://github.com/QuickBirdEng/DataKit.git` as the package link.
+## Architecture
 
-#### Manually
+DataKit is organized around three protocols and a set of "property" types that compose
+inside result builders.
 
-If you prefer not to use a dependency manager, you can integrate DataKit into your project manually by downloading the source code and placing the files in your project directory.  
+- **Core protocols** (`Sources/DataKit/`): `Readable` requires `init(from: ReadContext<Self>)`
+  and a `readFormat`; `Writable` requires a `writeFormat`; `ReadWritable` refines both with a
+  unified `format` from which `readFormat`/`writeFormat` are auto-derived. The "format" these
+  return is a tree of `FormatProperty<Root>` nodes assembled by a `@resultBuilder`
+  (`Builder/`). Each node knows how to read into a `ReadContainer` + `ReadContext` and/or
+  write into a `WriteContainer`.
+- **Two-phase read model**: the format walk parses each value and stores it into a
+  `ReadContext` keyed by `KeyPath<Self, Value>`; the initializer pulls values back out by the
+  *same* key paths. There is no compile-time link between the two — a mismatch throws at
+  runtime (see the [reading footgun](#heads-up-keypath-mismatch-is-a-runtime-error)).
+- **Property building blocks** (`Property/`): `Property`, `Convert`, `Custom`, `Using`,
+  `Scope`, and `Environment` — see [Concepts](#concepts) above.
+- **Environment system** (`Environment/`): a SwiftUI-style key-value store carried through the
+  containers. Built-in keys: `endianness` (host-default), `skipChecksumVerification`, `suffix`.
+  Add custom keys via `EnvironmentKey` + an `EnvironmentValues` extension.
+- **Conversions** (`Conversions/`): reusable bidirectional `Conversion`/`ReversibleConversion`
+  values (`.encoded(.utf8)`, `.prefixCount(_:)`, `.dynamicCount`, `.cast(_:)`, etc.).
+- **Checksums** (`Property/Checksum.swift`): built on the `Checksum` protocol from
+  [crc-swift](https://github.com/QuickBirdEng/crc-swift). Placing a checksum inside a `Scope`
+  makes it cover only that scope; checksum bytes are always written big-endian, independent of
+  the surrounding `endianness` setting.
 
-## 👤 Author
+Endianness is host-default everywhere *except* checksums; set `.endianness(.big)` explicitly
+when implementing portable wire protocols. The library target enables the `StrictConcurrency`
+and `ExistentialAny` upcoming features, so new code should be `Sendable` where possible.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes. Upgrading from 0.1.x? Read the
+[migration guide](Sources/DataKit/DataKit.docc/Migrating-to-0.2.0.md).
+
+## Contributing
+
+Issues and PRs welcome. Before opening a PR:
+
+- Run `swift test` from the repo root — all existing tests should pass.
+- Add a round-trip test for any new format primitive or built-in conformance.
+- See [Architecture](#architecture) above for a tour of how the pieces fit together.
+
+## License
+
+DataKit is released under the MIT license. See [LICENSE](LICENSE).
+
+## Author
 
 DataKit is created with ❤️ by [QuickBird](https://quickbirdstudios.com).
-
-## ❤️ Contributing
-
-Feel free to open issues for help, found bugs or to discuss new feature requests. Happy to help!
-Open a pull request, if you want to propose changes to DataKit.
-
-## 📃 License
-
-DataKit is released under an MIT license. See [License.md](https://github.com/QuickBirdEng/DataKit/blob/master/LICENSE) for more information.

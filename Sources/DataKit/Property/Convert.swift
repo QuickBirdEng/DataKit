@@ -1,12 +1,20 @@
-//
-//  File.swift
-//
-//
-//  Created by Paul Kraft on 27.07.23.
-//
+// Convert.swift
 
 import Foundation
 
+/// Reads or writes a field using a different on-wire type than the in-memory type.
+///
+/// `Convert` is the bridge between a model's natural Swift type and the bytes a protocol
+/// actually carries. Three variants exist:
+///
+/// - With a ``Conversion``/``ReversibleConversion`` builder: `Convert(\.field) { $0.exactly(UInt16.self) }`.
+/// - With raw closures: `Convert(\.field, convert: { ... })` for one-direction conversions,
+///   or `Convert(\.field, reading: { ... }, writing: { ... })` for the symmetric case.
+/// - For ``ReadWritable`` roots, the reversible form is required so the conversion runs
+///   in both directions.
+///
+/// For the closure-based read initializer, the closure maps **wire type → in-memory type**.
+/// For the closure-based write initializer, the closure maps **in-memory type → wire type**.
 public struct Convert<Format: FormatType>: FormatProperty {
 
     // MARK: Nested Types
@@ -19,19 +27,19 @@ public struct Convert<Format: FormatType>: FormatProperty {
 
     // MARK: Initialization
 
-    public init<Root, Value, ConvertedValue: Readable>(
+    /// Read-only conversion using a ``Conversion`` builder.
+    public init<Root, Value: Sendable, ConvertedValue: Readable>(
         _ keyPath: KeyPath<Root, Value>,
         conversion makeConversion: Conversion<ConvertedValue, Value>.Make
     ) where Root: Readable, Format == ReadFormat<Root> {
-        self.init(
-            keyPath,
-            convert: Conversion.make(makeConversion).convert
-        )
+        let conversion = Conversion.make(makeConversion)
+        self.init(keyPath) { try conversion.convert($0) }
     }
 
-    public init<Root, Value, ConvertedValue: Readable>(
+    /// Read-only conversion using a raw closure (wire type → in-memory type).
+    public init<Root, Value: Sendable, ConvertedValue: Readable>(
         _ keyPath: KeyPath<Root, Value>,
-        convert: @escaping (ConvertedValue) throws -> Value
+        convert: @escaping @Sendable (ConvertedValue) throws -> Value
     ) where Root: Readable, Format == ReadFormat<Root> {
         self.format = ReadFormat { container, context in
             let value = try convert(ConvertedValue(from: &container))
@@ -39,37 +47,47 @@ public struct Convert<Format: FormatType>: FormatProperty {
         }
     }
 
-    public init<Root, Value, ConvertedValue: Writable>(
+    /// Write-only conversion using a ``Conversion`` builder.
+    public init<Root, Value: Sendable, ConvertedValue: Writable>(
         _ keyPath: KeyPath<Root, Value>,
         conversion makeConversion: Conversion<Value, ConvertedValue>.Make
     ) where Root: Writable, Format == WriteFormat<Root> {
-        self.init(
-            keyPath,
-            convert: Conversion.make(makeConversion).convert
-        )
+        let conversion = Conversion.make(makeConversion)
+        self.init(keyPath) { try conversion.convert($0) }
     }
 
-    public init<Root, Value, ConvertedValue: Writable>(
+    /// Write-only conversion using a raw closure (in-memory type → wire type).
+    public init<Root, Value: Sendable, ConvertedValue: Writable>(
         _ keyPath: KeyPath<Root, Value>,
-        convert: @escaping (Value) throws -> ConvertedValue
+        convert: @escaping @Sendable (Value) throws -> ConvertedValue
     ) where Root: Writable, Format == WriteFormat<Root> {
         self.format = WriteFormat { container, root in
             try convert(root[keyPath: keyPath]).write(to: &container)
         }
     }
 
-    public init<Root, Value, ConvertedValue: ReadWritable>(
+    /// Reversible conversion for a ``ReadWritable`` root, using a ``ReversibleConversion`` builder.
+    public init<Root, Value: Sendable, ConvertedValue: ReadWritable>(
         _ keyPath: KeyPath<Root, Value>,
         conversion makeConversion: ReversibleConversion<Value, ConvertedValue>.Make
     ) where Root: ReadWritable, Format == ReadWriteFormat<Root> {
         let conversion = ReversibleConversion.make(makeConversion)
-        self.init(keyPath, reading: conversion.convert, writing: conversion.convert)
+        self.init(
+            keyPath,
+            reading: { try conversion.convert($0) },
+            writing: { try conversion.convert($0) }
+        )
     }
 
-    public init<Root, Value, ConvertedValue: ReadWritable>(
+    /// Reversible conversion for a ``ReadWritable`` root, using paired raw closures.
+    ///
+    /// - Parameters:
+    ///   - reading: Maps wire type → in-memory type during decode.
+    ///   - writing: Maps in-memory type → wire type during encode.
+    public init<Root, Value: Sendable, ConvertedValue: ReadWritable>(
         _ keyPath: KeyPath<Root, Value>,
-        reading: @escaping (ConvertedValue) throws -> Value,
-        writing: @escaping (Value) throws -> ConvertedValue
+        reading: @escaping @Sendable (ConvertedValue) throws -> Value,
+        writing: @escaping @Sendable (Value) throws -> ConvertedValue
     ) where Root: ReadWritable, Format == ReadWriteFormat<Root> {
         self.format = ReadWriteFormat(
             read: .init { container, context in
@@ -96,4 +114,4 @@ extension Convert: WritableProperty where Format: WritableProperty {
     }
 }
 
-
+extension Convert: Sendable where Format: Sendable {}

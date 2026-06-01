@@ -1,9 +1,4 @@
-//
-//  File.swift
-//  
-//
-//  Created by Paul Kraft on 25.07.23.
-//
+// Exports.swift
 
 @_exported import Foundation
 @_exported import CRC
