@@ -74,8 +74,18 @@ fixes.
   modifiers must now be `@Sendable`. The value passed to `.environment(_:_:)` must be
   `Sendable`.
 - `Checksum` types used inside a format must be `Sendable`.
-- `UnexpectedValueError.expectedValue` and `.actualValue` are now typed `any Sendable`
-  instead of `Any`.
+- `Conversion` and `ReversibleConversion` store `@Sendable` closures, and their operators
+  now require the types they produce to be `Sendable`: `cast`/`clamped`/`exactly`'s
+  `NewTarget`, `encoded`'s string/byte `Target`, `map`/`prefixCount`/`dynamicCount`'s element
+  and collection types, `prefixCount`'s `Count`, and `converted(to:)`'s `Dimension` unit. All
+  standard-library numeric, string, collection, and unit types already satisfy this.
+- `DataBuilder` expressions (`FixedWidthInteger`, `FixedWidthFloatingPoint`,
+  `RawRepresentable`, and `Checksum` values) must be `Sendable`.
+- `EnvironmentKey.Value` must now be `Sendable`; `ReadContext.write(_:for:)` requires its
+  `Value` to be `Sendable` (affects custom `ReadableProperty` implementations).
+- The type-erased debugging payloads on the error types are now `any Sendable` instead of
+  `Any`: `UnexpectedValueError.expectedValue`/`.actualValue`, `ConversionError.source`, and
+  `ReadContext.ValueTypeMismatchError.value`.
 - `KeyPath` no longer conforms to `FormatProperty` / `ReadableProperty` /
   `WritableProperty` directly. Bare key-path syntax (`\.field`) inside a format builder
   still works; passing a key path where a `FormatProperty` is expected **outside** a

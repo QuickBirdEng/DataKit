@@ -84,3 +84,5 @@ public struct ReadContainer {
     }
 
 }
+
+extension ReadContainer: Sendable {}

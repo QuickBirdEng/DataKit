@@ -4,18 +4,17 @@ import Foundation
 
 /// Thrown by a `Conversion` or `ReversibleConversion` when the input value cannot be represented in the target type.
 ///
-/// The stored values are intended for debugging — they are type-erased to `Any` so the error
-/// type itself can sit at the boundary between many different `Source`/`Target` pairs without
+/// The stored values are intended for debugging — they are type-erased so the error type
+/// itself can sit at the boundary between many different `Source`/`Target` pairs without
 /// being made generic. To inspect them programmatically, cast `source` to the expected
 /// source type and compare `targetType` against the expected target metatype.
 ///
-/// The `Sendable` conformance is `@unchecked` because `source` is type-erased from conversion
-/// operators whose `Source` is not constrained to `Sendable`. This is sound: the struct is
-/// immutable and exposes no way to mutate the boxed value, so there is nothing to race on.
-public struct ConversionError: Error, @unchecked Sendable {
+/// `source` is type-erased to `any Sendable` (the conversion operators that throw constrain
+/// their value type to `Sendable`), so the error is checked-`Sendable`.
+public struct ConversionError: Error, Sendable {
 
     /// The value that could not be converted.
-    public let source: Any
+    public let source: any Sendable
 
     /// The target type the conversion was attempting to produce.
     public let targetType: Any.Type

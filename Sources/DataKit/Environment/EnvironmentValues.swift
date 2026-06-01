@@ -22,7 +22,7 @@ import Foundation
 /// }
 /// ```
 public protocol EnvironmentKey {
-    associatedtype Value
+    associatedtype Value: Sendable
 
     /// The value returned when no entry has been written for this key.
     static var defaultValue: Value { get }
@@ -42,7 +42,7 @@ public struct EnvironmentValues {
 
     // MARK: Stored Properties
 
-    private var values = [ObjectIdentifier: Any]()
+    private var values = [ObjectIdentifier: any Sendable]()
 
     // MARK: Initialization
 
@@ -58,3 +58,5 @@ public struct EnvironmentValues {
     }
 
 }
+
+extension EnvironmentValues: Sendable {}

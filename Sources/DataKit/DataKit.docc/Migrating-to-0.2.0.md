@@ -68,9 +68,31 @@ If a closure captures something non-`Sendable`, refactor so the captured value i
 `Sendable` or passed through the container/environment instead of captured.
 
 Relatedly, the value passed to the `.environment(_:_:)` modifier must now be `Sendable`
-(all built-in environment values already are), and the debugging payloads on
-``UnexpectedValueError`` (`expectedValue`, `actualValue`) are now typed `any Sendable`
-rather than `Any`.
+(all built-in environment values already are), a custom ``EnvironmentKey``'s `Value` must be
+`Sendable`, and ``ReadContext/write(_:for:)`` requires its `Value` to be `Sendable` (relevant
+only to custom ``ReadableProperty`` implementations). The type-erased debugging payloads on
+the error types are now `any Sendable` instead of `Any`: ``UnexpectedValueError``'s
+`expectedValue`/`actualValue`, ``ConversionError``'s `source`, and
+`ReadContext.ValueTypeMismatchError`'s `value`.
+
+## Conversions now require `Sendable` value types
+
+``Conversion`` and ``ReversibleConversion`` store `@Sendable` closures, so their operators
+now require the types they produce to be `Sendable`. This is satisfied automatically by every
+standard-library numeric, string, collection, and `Dimension` unit type, so idiomatic usage
+is unaffected:
+
+```swift
+// Still compiles — all concrete types involved are Sendable
+Convert(\.fileSize) { $0.exactly(UInt32.self) }
+Convert(\.temperature) { $0.converted(to: .celsius).cast(Float.self) }
+Convert(\.items) { $0.prefixCount(UInt8.self) }
+```
+
+You only need to act if you wrote a `Conversion` over a custom value type that is not
+`Sendable` — make that type `Sendable`. The same `Sendable` requirement applies to values
+used in a ``DataBuilder`` (`FixedWidthInteger`, `FixedWidthFloatingPoint`,
+`RawRepresentable`, and `Checksum` expressions).
 
 ## Use `Checksum` types that are `Sendable`
 

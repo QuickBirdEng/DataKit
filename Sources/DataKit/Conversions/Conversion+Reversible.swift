@@ -12,18 +12,18 @@ import Foundation
 /// type only — calling `convert(value)` with a `Source` runs the forward direction, calling
 /// it with a `Target` runs the reverse. When in doubt, use the explicit
 /// ``conversion`` / ``reversion`` projections.
-public struct ReversibleConversion<Source, Target> {
+public struct ReversibleConversion<Source, Target>: Sendable {
 
     // MARK: Stored Properties
 
-    private let _convert: (Source) throws -> Target
-    private let _revert: (Target) throws -> Source
+    private let _convert: @Sendable (Source) throws -> Target
+    private let _revert: @Sendable (Target) throws -> Source
 
     // MARK: Initialization
 
     private init(
-        convert: @escaping (Source) throws -> Target,
-        revert: @escaping (Target) throws -> Source
+        convert: @escaping @Sendable (Source) throws -> Target,
+        revert: @escaping @Sendable (Target) throws -> Source
     ) {
         self._convert = convert
         self._revert = revert
@@ -71,8 +71,8 @@ extension ReversibleConversion {
     ///
     /// The two closures must be inverses for round-trip correctness.
     public func appending<NewTarget>(
-        convert: @escaping (Target) throws -> NewTarget,
-        revert: @escaping (NewTarget) throws -> Target
+        convert: @escaping @Sendable (Target) throws -> NewTarget,
+        revert: @escaping @Sendable (NewTarget) throws -> Target
     ) -> Appended<NewTarget> {
         .init {
             try convert(_convert($0))

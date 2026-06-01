@@ -16,15 +16,15 @@ import Foundation
 public enum DataBuilder {
 
     /// An accumulator step. Each `Component` appends to a shared `Data` buffer when applied.
-    public struct Component {
+    public struct Component: Sendable {
 
         // MARK: Stored Properties
 
-        public let append: (_ to: inout Data) -> Void
+        public let append: @Sendable (_ to: inout Data) -> Void
 
         // MARK: Initialization
 
-        public init(append: @escaping (_ to: inout Data) -> Void) {
+        public init(append: @escaping @Sendable (_ to: inout Data) -> Void) {
             self.append = append
         }
 
@@ -40,7 +40,7 @@ public enum DataBuilder {
 
     /// Integers are encoded **big-endian**, regardless of any surrounding format
     /// environment.
-    public static func buildExpression<I: FixedWidthInteger>(_ expression: I) -> Component {
+    public static func buildExpression<I: FixedWidthInteger & Sendable>(_ expression: I) -> Component {
         Component { data in
             withUnsafeBytes(of: expression.bigEndian) {
                 data.append(contentsOf: $0)
@@ -49,7 +49,7 @@ public enum DataBuilder {
     }
 
     /// Floating-point values are encoded via their integer `bitPattern`, **big-endian**.
-    public static func buildExpression<F: FixedWidthFloatingPoint>(_ expression: F) -> Component {
+    public static func buildExpression<F: FixedWidthFloatingPoint & Sendable>(_ expression: F) -> Component where F.BitPattern: Sendable {
         buildExpression(expression.bitPattern)
     }
 
@@ -57,7 +57,7 @@ public enum DataBuilder {
     /// integer encoding.
     public static func buildExpression<R: RawRepresentable>(
         _ expression: R
-    ) -> Component where R.RawValue: FixedWidthInteger {
+    ) -> Component where R.RawValue: FixedWidthInteger & Sendable {
         buildExpression(expression.rawValue)
     }
 
@@ -87,7 +87,7 @@ public enum DataBuilder {
 
     /// A bare ``Checksum`` value computes its checksum over the buffer accumulated so far
     /// and appends the result (in big-endian).
-    public static func buildExpression<C: Checksum>(_ expression: C) -> Component {
+    public static func buildExpression<C: Checksum & Sendable>(_ expression: C) -> Component where C.Value: Sendable {
         Component { data in
             let value = expression.calculate(for: data)
             buildExpression(value).append(&data)

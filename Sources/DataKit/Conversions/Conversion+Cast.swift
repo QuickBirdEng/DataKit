@@ -9,11 +9,11 @@ import Foundation
 // ``Conversion/exactly(_:from:)-...`` (throws on overflow); for saturating, use
 // ``Conversion/clamped(_:from:)-...``.
 
-extension Conversion where Target: BinaryFloatingPoint {
+extension Conversion where Target: BinaryFloatingPoint & Sendable {
 
     /// Casts the current floating-point target to a different floating-point type using
     /// the standard library's `init(_:)`. Lossy.
-    public func cast<NewTarget: BinaryFloatingPoint>(
+    public func cast<NewTarget: BinaryFloatingPoint & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -21,7 +21,7 @@ extension Conversion where Target: BinaryFloatingPoint {
     }
 
     /// Casts the current floating-point target to an integer type using `init(_:)`. Truncates.
-    public func cast<NewTarget: BinaryInteger>(
+    public func cast<NewTarget: BinaryInteger & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -30,10 +30,10 @@ extension Conversion where Target: BinaryFloatingPoint {
 
 }
 
-extension Conversion where Target: BinaryInteger {
+extension Conversion where Target: BinaryInteger & Sendable {
 
     /// Casts the current integer target to a floating-point type using `init(_:)`.
-    public func cast<NewTarget: BinaryFloatingPoint>(
+    public func cast<NewTarget: BinaryFloatingPoint & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -41,7 +41,7 @@ extension Conversion where Target: BinaryInteger {
     }
 
     /// Casts the current integer target to a different integer type using `init(_:)`.
-    public func cast<NewTarget: BinaryInteger>(
+    public func cast<NewTarget: BinaryInteger & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -50,10 +50,10 @@ extension Conversion where Target: BinaryInteger {
 
 }
 
-extension ReversibleConversion where Target: BinaryFloatingPoint {
+extension ReversibleConversion where Target: BinaryFloatingPoint & Sendable {
 
     /// Reversible cast between two floating-point types.
-    public func cast<NewTarget: BinaryFloatingPoint>(
+    public func cast<NewTarget: BinaryFloatingPoint & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -61,7 +61,7 @@ extension ReversibleConversion where Target: BinaryFloatingPoint {
     }
 
     /// Reversible cast between floating-point and integer. Each direction is lossy.
-    public func cast<NewTarget: BinaryInteger>(
+    public func cast<NewTarget: BinaryInteger & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -70,10 +70,10 @@ extension ReversibleConversion where Target: BinaryFloatingPoint {
 
 }
 
-extension ReversibleConversion where Target: BinaryInteger {
+extension ReversibleConversion where Target: BinaryInteger & Sendable {
 
     /// Reversible cast between integer and floating-point.
-    public func cast<NewTarget: BinaryFloatingPoint>(
+    public func cast<NewTarget: BinaryFloatingPoint & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -81,7 +81,7 @@ extension ReversibleConversion where Target: BinaryInteger {
     }
 
     /// Reversible cast between two integer types.
-    public func cast<NewTarget: BinaryInteger>(
+    public func cast<NewTarget: BinaryInteger & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {

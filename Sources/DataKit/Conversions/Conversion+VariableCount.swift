@@ -2,7 +2,7 @@
 
 import Foundation
 
-extension Conversion where Target: Sequence {
+extension Conversion where Target: Sequence & Sendable, Target.Element: Sendable {
 
     /// Wraps the sequence target into a ``DynamicCountArray`` — a variable-length list whose
     /// boundary is determined by either ``EnvironmentValues/suffix`` or the surrounding
@@ -16,7 +16,7 @@ extension Conversion where Target: Sequence {
 extension Conversion {
 
     /// Unwraps a ``DynamicCountArray`` back into a `RangeReplaceableCollection`.
-    public func dynamicCount<NewTarget: RangeReplaceableCollection>(
+    public func dynamicCount<NewTarget: RangeReplaceableCollection & Sendable>(
         _ target: NewTarget.Type = NewTarget.self
     ) -> Appended<NewTarget> where Target == DynamicCountArray<NewTarget.Element> {
         appending { NewTarget($0.values) }
@@ -24,7 +24,7 @@ extension Conversion {
 
 }
 
-extension ReversibleConversion where Target: RangeReplaceableCollection {
+extension ReversibleConversion where Target: RangeReplaceableCollection & Sendable, Target.Element: Sendable {
 
     /// Reversible wrap/unwrap of a `RangeReplaceableCollection` into a ``DynamicCountArray``.
     public var dynamicCount: Appended<DynamicCountArray<Target.Element>> {

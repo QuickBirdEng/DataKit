@@ -63,3 +63,5 @@ public struct WriteContainer {
     }
 
 }
+
+extension WriteContainer: Sendable {}

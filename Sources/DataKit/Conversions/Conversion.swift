@@ -21,15 +21,15 @@ import Foundation
 ///
 /// For ``ReadWritable`` round-trips, use ``ReversibleConversion`` instead — it bundles a
 /// pair of inverse transforms in one value.
-public struct Conversion<Source, Target> {
+public struct Conversion<Source, Target>: Sendable {
 
     // MARK: Stored Properties
 
-    internal let _convert: (Source) throws -> Target
+    internal let _convert: @Sendable (Source) throws -> Target
 
     // MARK: Initialization
 
-    internal init(_ convert: @escaping (Source) throws -> Target) {
+    internal init(_ convert: @escaping @Sendable (Source) throws -> Target) {
         self._convert = convert
     }
 
@@ -65,7 +65,7 @@ extension Conversion {
 
     /// Composes this conversion with a closure that transforms the target value further.
     public func appending<NewTarget>(
-        _ transform: @escaping (Target) throws -> NewTarget
+        _ transform: @escaping @Sendable (Target) throws -> NewTarget
     ) -> Appended<NewTarget> {
         .init { try transform(convert($0)) }
     }
@@ -74,7 +74,7 @@ extension Conversion {
     public func appending<NewTarget>(
         _ conversion: Conversion<Target, NewTarget>
     ) -> Appended<NewTarget> {
-        appending(conversion.convert)
+        appending { try conversion.convert($0) }
     }
 
 }

@@ -8,11 +8,11 @@ import Foundation
 // surface as an error rather than being silently truncated (``Conversion/cast(_:from:)-...``)
 // or clamped (``Conversion/clamped(_:from:)-...``).
 
-extension Conversion where Target: BinaryFloatingPoint {
+extension Conversion where Target: BinaryFloatingPoint & Sendable {
 
     /// Lossless floating-point → floating-point conversion. Throws ``ConversionError`` if
     /// the value cannot be represented exactly in `NewTarget`.
-    public func exactly<NewTarget: BinaryFloatingPoint>(
+    public func exactly<NewTarget: BinaryFloatingPoint & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -27,7 +27,7 @@ extension Conversion where Target: BinaryFloatingPoint {
 
     /// Lossless floating-point → integer conversion. Throws ``ConversionError`` if the
     /// value is non-integral or out of range.
-    public func exactly<NewTarget: BinaryInteger>(
+    public func exactly<NewTarget: BinaryInteger & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -42,11 +42,11 @@ extension Conversion where Target: BinaryFloatingPoint {
 
 }
 
-extension Conversion where Target: BinaryInteger {
+extension Conversion where Target: BinaryInteger & Sendable {
 
     /// Lossless integer → floating-point conversion. Throws ``ConversionError`` if the
     /// value cannot be represented exactly in `NewTarget`.
-    public func exactly<NewTarget: BinaryFloatingPoint>(
+    public func exactly<NewTarget: BinaryFloatingPoint & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -61,7 +61,7 @@ extension Conversion where Target: BinaryInteger {
 
     /// Lossless integer → integer conversion. Throws ``ConversionError`` if the value
     /// would overflow `NewTarget`.
-    public func exactly<NewTarget: BinaryInteger>(
+    public func exactly<NewTarget: BinaryInteger & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -76,10 +76,10 @@ extension Conversion where Target: BinaryInteger {
 
 }
 
-extension ReversibleConversion where Target: BinaryFloatingPoint {
+extension ReversibleConversion where Target: BinaryFloatingPoint & Sendable {
 
     /// Reversible lossless floating-point ↔ floating-point conversion.
-    public func exactly<NewTarget: BinaryFloatingPoint>(
+    public func exactly<NewTarget: BinaryFloatingPoint & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -91,7 +91,7 @@ extension ReversibleConversion where Target: BinaryFloatingPoint {
     }
 
     /// Reversible lossless floating-point ↔ integer conversion.
-    public func exactly<NewTarget: BinaryInteger>(
+    public func exactly<NewTarget: BinaryInteger & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -104,10 +104,10 @@ extension ReversibleConversion where Target: BinaryFloatingPoint {
 
 }
 
-extension ReversibleConversion where Target: BinaryInteger {
+extension ReversibleConversion where Target: BinaryInteger & Sendable {
 
     /// Reversible lossless integer ↔ floating-point conversion.
-    public func exactly<NewTarget: BinaryFloatingPoint>(
+    public func exactly<NewTarget: BinaryFloatingPoint & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {
@@ -119,7 +119,7 @@ extension ReversibleConversion where Target: BinaryInteger {
     }
 
     /// Reversible lossless integer ↔ integer conversion.
-    public func exactly<NewTarget: BinaryInteger>(
+    public func exactly<NewTarget: BinaryInteger & Sendable>(
         _ target: NewTarget.Type = NewTarget.self,
         from source: Target.Type = Target.self
     ) -> Appended<NewTarget> {

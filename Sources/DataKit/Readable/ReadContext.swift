@@ -35,10 +35,10 @@ public struct ReadContext<Root: Readable> {
     ///
     /// Most often this means a value placed via `Convert` was stored under a different runtime
     /// type than the one requested.
-    public struct ValueTypeMismatchError: Error, @unchecked Sendable {
+    public struct ValueTypeMismatchError: Error, Sendable {
 
         /// The actual value that was stored.
-        public let value: Any
+        public let value: any Sendable
 
         /// The type that was requested.
         public let expectedType: Any.Type
@@ -46,7 +46,7 @@ public struct ReadContext<Root: Readable> {
 
     // MARK: Stored Properties
 
-    private var values = [PartialKeyPath<Root>: Any]()
+    private var values = [PartialKeyPath<Root>: any Sendable]()
 
     // MARK: Initialization
 
@@ -64,7 +64,7 @@ public struct ReadContext<Root: Readable> {
     ///
     /// - Throws: This method does not currently throw, but is declared `throws` so that
     ///   future implementations may add validation.
-    public mutating func write<Value>(_ value: Value, for keyPath: KeyPath<Root, Value>) throws {
+    public mutating func write<Value: Sendable>(_ value: Value, for keyPath: KeyPath<Root, Value>) throws {
         values[keyPath] = value
     }
 
@@ -121,3 +121,5 @@ public struct ReadContext<Root: Readable> {
     }
 
 }
+
+extension ReadContext: Sendable {}

@@ -2,7 +2,7 @@
 
 import Foundation
 
-extension Conversion where Target: StringProtocol {
+extension Conversion where Target: StringProtocol & Sendable {
 
     /// Encodes the current string target into `Data` using the given string encoding.
     ///
@@ -22,7 +22,7 @@ extension Conversion where Target: StringProtocol {
 
 }
 
-extension Conversion where Target: Sequence<UInt8> {
+extension Conversion where Target: Sequence<UInt8> & Sendable {
 
     /// Decodes the current byte-sequence target into a `String` using the given encoding.
     ///
